@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D AI Game Master</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-4 text-center medieval-font">D&D AI Game Master</h1>
+
+        <!-- Game Stats -->
+        <div id="game-stats" class="bg-gradient-to-br from-gray-800 to-gray-900 p-4 rounded-lg shadow-lg mb-4">
+            <h2 class="text-xl font-bold mb-3 text-purple-300">Game Statistics</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="stat-item bg-gray-700 p-3 rounded-lg">
+                    <div class="text-purple-300 text-sm font-medium mb-1">Players</div>
+                    <div class="text-white text-lg font-bold" id="player-count">0</div>
+                </div>
+                <div class="stat-item bg-gray-700 p-3 rounded-lg">
+                    <div class="text-purple-300 text-sm font-medium mb-1">Encounters</div>
+                    <div class="text-white text-lg font-bold" id="encounter-count">0</div>
+                </div>
+                <div class="stat-item bg-gray-700 p-3 rounded-lg">
+                    <div class="text-purple-300 text-sm font-medium mb-1">Rolls</div>
+                    <div class="text-white text-lg font-bold" id="roll-count">0</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="text-sm font-bold mb-2 text-amber-200">Recent Events</div>
+                <div id="game-events" class="text-sm space-y-1"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Character Panel -->
+            <div class="character-sheet bg-gray-800 p-4 rounded-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <input type="text" id="character-name" class="character-input text-xl font-bold" placeholder="Character Name">
+                    <span class="text-purple-300 text-sm px-2 py-1 rounded bg-purple-900/30">Level 1</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="text-gray-400 text-sm">Race</label>
+                        <select id="character-race" class="character-input">
+                            <option value="">Choose Race...</option>
+                            <option value="human">Human - Versatile and Ambitious</option>
+                            <option value="elf">Elf - Graceful and Long-lived</option>
+                            <option value="dwarf">Dwarf - Hardy and Traditional</option>
+                            <option value="halfling">Halfling - Small but Courageous</option>
+                            <option value="dragonborn">Dragonborn - Proud Dragon Kin</option>
+                            <option value="gnome">Gnome - Curious and Clever</option>
+                            <option value="half-elf">Half-Elf - Best of Two Worlds</option>
+                            <option value="half-orc">Half-Orc - Strong and Enduring</option>
+                            <option value="tiefling">Tiefling - Infernal Heritage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">Class</label>
+                        <select id="character-class" class="character-input">
+                            <option value="">Choose Class...</option>
+                            <option value="barbarian">Barbarian - Primal Warrior</option>
+                            <option value="bard">Bard - Magical Performer</option>
+                            <option value="cleric">Cleric - Divine Spellcaster</option>
+                            <option value="druid">Druid - Nature's Guardian</option>
+                            <option value="fighter">Fighter - Weapon Master</option>
+                            <option value="monk">Monk - Martial Artist</option>
+                            <option value="paladin">Paladin - Holy Knight</option>
+                            <option value="ranger">Ranger - Wilderness Scout</option>
+                            <option value="rogue">Rogue - Skilled Expert</option>
+                            <option value="sorcerer">Sorcerer - Natural Spellcaster</option>
+                            <option value="warlock">Warlock - Eldritch Invoker</option>
+                            <option value="wizard">Wizard - Arcane Scholar</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="stat-box">
+                        <span class="stat-label">STR</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="str">-</button>
+                            <span class="attribute-value" id="str-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="str">+</button>
+                        </div>
+                        <span class="stat-modifier" id="str-mod">-1</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">DEX</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="dex">-</button>
+                            <span class="attribute-value" id="dex-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="dex">+</button>
+                        </div>
+                        <span class="stat-modifier" id="dex-mod">-1</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">CON</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="con">-</button>
+                            <span class="attribute-value" id="con-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="con">+</button>
+                        </div>
+                        <span class="stat-modifier" id="con-mod">-1</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">INT</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="int">-</button>
+                            <span class="attribute-value" id="int-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="int">+</button>
+                        </div>
+                        <span class="stat-modifier" id="int-mod">-1</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">WIS</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="wis">-</button>
+                            <span class="attribute-value" id="wis-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="wis">+</button>
+                        </div>
+                        <span class="stat-modifier" id="wis-mod">-1</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">CHA</span>
+                        <div class="attribute-controls">
+                            <button class="attribute-btn decrease-btn" data-stat="cha">-</button>
+                            <span class="attribute-value" id="cha-value">8</span>
+                            <button class="attribute-btn increase-btn" data-stat="cha">+</button>
+                        </div>
+                        <span class="stat-modifier" id="cha-mod">-1</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-purple-300 text-sm">
+                        Points Remaining: <span id="points-remaining">27</span>
+                    </div>
+                    <button id="start-adventure" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Begin Adventure
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Chat -->
+            <div class="chat-wrapper bg-gray-800 p-4 rounded-lg col-span-2">
+                <div id="chat-messages" class="chat-container"></div>
+                <div class="chat-input-area">
+                    <div id="input-container" class="chat-input-container">
+                        <div id="input-state" class="flex gap-2">
+                            <input type="text" id="message-input" 
+                                class="chat-input flex-1 p-3 rounded-lg text-white placeholder-gray-400 focus:outline-none"
+                                placeholder="Describe your action...">
+                            <button id="send-message"
+                                class="chat-send-button px-6 py-3 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                Send
+                            </button>
+                        </div>
+                        <div id="loading-state" class="hidden flex items-center justify-center gap-3 p-3">
+                            <span class="text-purple-300 font-bold">Game Master is thinking</span>
+                            <div class="dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Stats Popover Template -->
+    <div id="player-stats-popover" class="player-stats-popover">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <span class="player-name text-amber-200 text-lg font-bold"></span>
+                <span class="level-badge ml-2">Level <span class="player-level">1</span></span>
+            </div>
+            <button onclick="hidePlayerStats()" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-4">
+            <div class="flex gap-4">
+                <div>
+                    <div class="text-gray-400 text-sm">Race</div>
+                    <div class="player-race text-white"></div>
+                </div>
+                <div>
+                    <div class="text-gray-400 text-sm">Class</div>
+                    <div class="player-class text-white"></div>
+                </div>
+            </div>
+        </div>
+        <div class="player-stats-grid grid grid-cols-2 gap-4">
+            <!-- Stats will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let gameStats = {
+            playerCount: 0,
+            encounterCount: 0,
+            rollCount: 0
+        };
+
+        // Initialize WebSocket connection
+        function initializeWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+                displayMessage({
+                    type: 'system',
+                    content: 'Connected to game server. Create your character to begin.'
+                });
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                displayMessage({
+                    type: 'system',
+                    content: 'Disconnected from game server. Please refresh the page.'
+                });
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                displayMessage({
+                    type: 'system',
+                    content: 'Error connecting to game server. Please refresh the page.'
+                });
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                console.log('Received message:', message);  // Debug log
+                
+                if (message.type === 'gm_response') {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('input-state').classList.remove('hidden');
+                    displayMessage(message);
+                } else if (message.type === 'system') {
+                    displayMessage(message);
+                } else if (message.type === 'state_update') {
+                    gameStats.playerCount = message.players;
+                    gameStats.encounterCount = message.encounters;
+                    gameStats.rollCount = message.rolls;
+                    updateGameStats();
+                }
+            };
+        }
+
+        // Initialize WebSocket on page load
+        initializeWebSocket();
+
+        // Point Buy System
+        const pointCosts = {
+            8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
+        };
+        
+        let stats = {
+            str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8
+        };
+        
+        let pointsRemaining = 27;
+        let characterLocked = false;
+
+        // Initialize stat controls
+        Object.keys(stats).forEach(stat => {
+            const decreaseBtn = document.querySelector(`.decrease-btn[data-stat="${stat}"]`);
+            const increaseBtn = document.querySelector(`.increase-btn[data-stat="${stat}"]`);
+            
+            decreaseBtn.addEventListener('click', () => adjustStat(stat, -1));
+            increaseBtn.addEventListener('click', () => adjustStat(stat, 1));
+            
+            updateStatDisplay(stat);
+        });
+
+        function adjustStat(stat, change) {
+            if (characterLocked) return;
+            
+            const newValue = stats[stat] + change;
+            if (newValue < 8 || newValue > 15) return;
+            
+            const currentCost = pointCosts[stats[stat]];
+            const newCost = pointCosts[newValue];
+            const pointChange = newCost - currentCost;
+            
+            if (pointsRemaining - pointChange < 0) return;
+            
+            stats[stat] = newValue;
+            pointsRemaining -= pointChange;
+            
+            updateStatDisplay(stat);
+            updatePointsDisplay();
+            checkCharacterComplete();
+        }
+
+        function updateStatDisplay(stat) {
+            const valueElem = document.getElementById(`${stat}-value`);
+            const modElem = document.getElementById(`${stat}-mod`);
+            const value = stats[stat];
+            const modifier = Math.floor((value - 10) / 2);
+            
+            valueElem.textContent = value;
+            modElem.textContent = modifier >= 0 ? `+${modifier}` : modifier;
+            
+            // Update button states
+            const decreaseBtn = document.querySelector(`.decrease-btn[data-stat="${stat}"]`);
+            const increaseBtn = document.querySelector(`.increase-btn[data-stat="${stat}"]`);
+            
+            decreaseBtn.disabled = value <= 8 || characterLocked;
+            increaseBtn.disabled = value >= 15 || characterLocked || 
+                (pointCosts[value + 1] - pointCosts[value] > pointsRemaining);
+        }
+
+        function updatePointsDisplay() {
+            document.getElementById('points-remaining').textContent = pointsRemaining;
+        }
+
+        function checkCharacterComplete() {
+            const name = document.getElementById('character-name').value;
+            const race = document.getElementById('character-race').value;
+            const charClass = document.getElementById('character-class').value;
+            const startBtn = document.getElementById('start-adventure');
+            
+            startBtn.disabled = !name || !race || !charClass || pointsRemaining > 0;
+        }
+
+        // Add event listeners for name, race, and class
+        document.getElementById('character-name').addEventListener('input', checkCharacterComplete);
+        document.getElementById('character-race').addEventListener('change', checkCharacterComplete);
+        document.getElementById('character-class').addEventListener('change', checkCharacterComplete);
+
+        // Start Adventure button
+        document.getElementById('start-adventure').addEventListener('click', () => {
+            if (characterLocked) return;
+            
+            characterLocked = true;
+            document.getElementById('start-adventure').disabled = true;
+            
+            // Disable all inputs
+            document.getElementById('character-name').disabled = true;
+            document.getElementById('character-race').disabled = true;
+            document.getElementById('character-class').disabled = true;
+            
+            // Update all stat displays to show disabled state
+            Object.keys(stats).forEach(updateStatDisplay);
+            
+            // Enable chat
+            document.getElementById('message-input').disabled = false;
+            document.getElementById('send-message').disabled = false;
+            
+            // Get character data
+            const charData = {
+                name: document.getElementById('character-name').value,
+                race: document.getElementById('character-race').value,
+                class: document.getElementById('character-class').value,
+                stats: stats
+            };
+            
+            // Display character creation message
+            displayMessage({
+                type: 'system',
+                content: `Character created: ${charData.name} the ${charData.race} ${charData.class}`
+            });
+
+            // Send character data to server
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'character_created',
+                    data: charData
+                }));
+            } else {
+                displayMessage({
+                    type: 'system',
+                    content: 'Error: Not connected to game server. Please refresh the page.'
+                });
+            }
+        });
+
+        // Disable chat until character is created
+        document.getElementById('message-input').disabled = true;
+        document.getElementById('send-message').disabled = true;
+
+        document.getElementById('send-message').addEventListener('click', function () {
+            const input = document.getElementById('message-input');
+            if (input.value.trim()) {
+                // Show loading state
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('input-state').classList.add('hidden');
+
+                // Display player's message immediately
+                displayMessage({
+                    type: 'action',
+                    content: input.value,
+                    player: {
+                        name: document.getElementById('character-name').value,
+                        class: document.getElementById('character-class').value,
+                        race: document.getElementById('character-race').value,
+                        stats: stats
+                    }
+                });
+
+                // Send message to server
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'action',
+                        content: input.value
+                    }));
+                } else {
+                    displayMessage({
+                        type: 'system',
+                        content: 'Error: Not connected to game server. Please refresh the page.'
+                    });
+                }
+
+                // Clear input
+                input.value = '';
+            }
+        });
+
+        // Handle Enter key in message input
+        document.getElementById('message-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                document.getElementById('send-message').click();
+            }
+        });
+
+        function displayMessage(message) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+
+            switch (message.type) {
+                case 'gm_response':
+                    messageDiv.className += ' gm-message';
+                    let content = message.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br>');
+                    messageDiv.innerHTML = `
+                        <div class="gm-title">Game Master</div>
+                        <div class="content">${content}</div>
+                    `;
+                    break;
+
+                case 'action':
+                    messageDiv.className += ' player-message';
+                    const displayName = message.player.name || 'Player';
+                    const playerClass = message.player.class || '';
+                    messageDiv.innerHTML = `
+                        <div class="player-name" 
+                             onclick="showPlayerStats(event, ${JSON.stringify(message.player)})">
+                            ${displayName} ${playerClass ? `(${playerClass})` : ''}
+                        </div>
+                        <div class="content">${message.content}</div>
+                    `;
+                    break;
+
+                case 'system':
+                    messageDiv.className += ' system-message';
+                    messageDiv.innerHTML = `<div class="content">${message.content}</div>`;
+                    break;
+
+                default:
+                    messageDiv.innerHTML = `<div class="content">${message.content}</div>`;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Update game stats for relevant message types
+            if (message.type === 'action' || message.type === 'gm_response') {
+                updateGameStats();
+            }
+        }
+
+        function updateGameStats() {
+            document.getElementById('player-count').textContent = gameStats.playerCount;
+            document.getElementById('encounter-count').textContent = gameStats.encounterCount;
+            document.getElementById('roll-count').textContent = gameStats.rollCount;
+        }
+
+        // Player Stats Popover
+        function showPlayerStats(event, playerData) {
+            event.stopPropagation(); // Prevent event bubbling
+            const popover = document.getElementById('player-stats-popover');
+            
+            // Remove any existing click handlers
+            document.removeEventListener('click', hidePlayerStats);
+
+            // Position the popover near the click but ensure it's visible
+            const rect = event.target.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const popoverHeight = 400; // Approximate height
+
+            // Calculate position
+            let top = rect.bottom + 10;
+            if (top + popoverHeight > viewportHeight) {
+                top = rect.top - popoverHeight - 10;
+            }
+
+            popover.style.top = `${top}px`;
+            popover.style.left = `${rect.left}px`;
+
+            // Update popover content
+            popover.querySelector('.player-name').textContent = playerData.name || 'Unknown Player';
+            popover.querySelector('.player-level').textContent = playerData.level || 1;
+            popover.querySelector('.player-race').textContent = playerData.race || 'Unknown Race';
+            popover.querySelector('.player-class').textContent = playerData.class || 'Unknown Class';
+
+            // Update attributes
+            const statsGrid = popover.querySelector('.player-stats-grid');
+            statsGrid.innerHTML = Object.entries(playerData.attributes || {}).map(([attr, value]) => `
+                <div class="player-stat">
+                    <div class="player-stat-label">${attr}</div>
+                    <div class="player-stat-value">${value}</div>
+                    <div class="player-stat-mod">${Math.floor((value - 10) / 2) >= 0 ? '+' : ''}${Math.floor((value - 10) / 2)}</div>
+                </div>
+            `).join('');
+
+            // Show popover
+            popover.classList.add('active');
+
+            // Add click handler to close popover when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', (e) => {
+                    if (!popover.contains(e.target) && !event.target.contains(e.target)) {
+                        hidePlayerStats();
+                    }
+                });
+            }, 0);
+        }
+
+        function hidePlayerStats() {
+            const popover = document.getElementById('player-stats-popover');
+            popover.classList.remove('active');
+            document.removeEventListener('click', hidePlayerStats);
+        }
+    </script>
+</body>
+
+</html>

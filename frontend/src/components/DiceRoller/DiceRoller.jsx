@@ -28,7 +28,7 @@ const DiceRoller = () => {
   const [showDamage, setShowDamage] = useState(false);
   const [suggestedRoll, setSuggestedRoll] = useState(null);
   const [shouldShow, setShouldShow] = useState(false);
-  const { messages, setChatInput, chatInput } = useGameStore();
+  const { messages, setChatInput, chatInput, ws } = useGameStore();
 
   // Check if GM is requesting a roll and determine which roll type
   useEffect(() => {
@@ -90,6 +90,14 @@ const DiceRoller = () => {
     // Append the roll to the chat input
     const rollText = `${description}${diceNotation}`;
     setChatInput((chatInput ? chatInput + ' ' : '') + rollText);
+
+    // Send roll event to backend
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'roll',
+        content: rollText
+      }));
+    }
 
     // Hide the dice roller after appending
     setShouldShow(false);

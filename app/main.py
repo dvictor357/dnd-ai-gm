@@ -230,6 +230,18 @@ async def websocket_endpoint(websocket: WebSocket):
                     "rolls": manager.game_state["rolls"]
                 })
             
+            elif data["type"] == "roll":
+                # Increment roll count
+                manager.increment_rolls()
+                
+                # Send updated stats
+                await websocket.send_json({
+                    "type": "state_update",
+                    "players": len(manager.game_state["players"]),
+                    "encounters": manager.game_state["encounters"],
+                    "rolls": manager.game_state["rolls"]
+                })
+            
             elif data["type"] == "action":
                 player_id = None
                 # Find player ID based on character data

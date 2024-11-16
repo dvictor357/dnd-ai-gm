@@ -15,7 +15,7 @@ function App() {
   return (
     <div className="w-full min-h-screen bg-gray-900 text-gray-100 mx-auto">
       <div className="w-full px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 h-screen">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-screen">
           {/* Character Form - Centered and wider when no character */}
           <div className={`${isCharacterCreated
             ? 'lg:col-span-3'
@@ -36,13 +36,6 @@ function App() {
                 <ChatWindow />
               </div>
             </div>
-          )}
-
-          {/* Show title in center when no character */}
-          {!isCharacterCreated && (
-            <h1 className="absolute top-14 left-1/2 -translate-x-1/2 text-4xl font-medieval text-center text-primary-300">
-              D&D AI Game Master
-            </h1>
           )}
 
           {/* Right Column - Stats Panel */}

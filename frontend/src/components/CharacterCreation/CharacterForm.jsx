@@ -95,44 +95,6 @@ const CharacterForm = () => {
     setPointsRemaining(pointsRemaining - (change * pointCost));
   };
 
-  const handleRandomize = () => {
-    // Random race
-    const randomRace = races[Math.floor(Math.random() * races.length)].name;
-    updateCharacterField('race', randomRace);
-
-    // Random class
-    const randomClass = classes[Math.floor(Math.random() * classes.length)].name;
-    updateCharacterField('class', randomClass);
-
-    // Random background
-    const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)].name;
-    updateCharacterField('background', randomBackground);
-
-    const stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-    let remainingPoints = 27;
-
-    // First set all stats to 8 (minimum)
-    stats.forEach(stat => setStat(stat, 8));
-
-    // Then distribute remaining points randomly
-    while (remainingPoints > 0) {
-      const randomStat = stats[Math.floor(Math.random() * stats.length)];
-      const currentValue = character.stats[randomStat];
-
-      // Calculate cost for next point
-      const nextCost = currentValue >= 13 ? 2 : 1;
-
-      // Check if we can increase this stat
-      if (currentValue < 15 && remainingPoints >= nextCost) {
-        setStat(randomStat, currentValue + 1);
-        remainingPoints -= nextCost;
-      }
-    }
-
-    // Update points remaining
-    setPointsRemaining(0);
-  };
-
   const stats = [
     { key: 'strength', label: 'Strength' },
     { key: 'dexterity', label: 'Dexterity' },
@@ -207,39 +169,7 @@ const CharacterForm = () => {
           </div>
         ) : (
           <>
-            <div className="flex justify-end mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="relative group/tooltip">
-                  <button
-                    type="button"
-                    onClick={handleRandomize}
-                    className="group relative px-4 py-2 font-medieval text-sm font-bold outline-none focus:outline-none
-                             transform transition-all duration-200 hover:scale-105
-                             before:content-[''] before:absolute before:inset-0 
-                             before:border-2 before:border-amber-600/50
-                             before:bg-gradient-to-b before:from-amber-950/90 before:to-amber-900/90 
-                             before:rounded-sm before:-skew-x-12 
-                             before:transition-all before:duration-200
-                             hover:before:border-amber-500/80
-                             hover:before:from-amber-900/90 
-                             hover:before:to-amber-800/90
-                             active:before:from-amber-950/90 
-                             active:before:to-amber-900/90
-                             overflow-hidden"
-                  >
-                    <span className="relative z-10 text-amber-300 group-hover:text-amber-200">
-                      Roll Stats
-                    </span>
-                  </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs font-medieval
-                                bg-gray-900/90 text-gray-300 rounded border border-gray-700
-                                opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap">
-                    Randomly distribute ability scores
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            <h2 className="text-3xl font-medieval text-primary-300 border-b border-gray-700/50 pb-2 mb-2 text-center">Character Creation</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* Left Column */}
               <div className="space-y-6">

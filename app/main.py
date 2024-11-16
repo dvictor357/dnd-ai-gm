@@ -1,8 +1,5 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from typing import Dict, List
 import json
 import os
@@ -30,14 +27,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Create necessary directories if they don't exist
-os.makedirs(BASE_DIR / "static", exist_ok=True)
-os.makedirs(BASE_DIR / "templates", exist_ok=True)
-
-# Mount static files and templates
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 class ConnectionManager:
     def __init__(self):
@@ -208,11 +197,7 @@ Consider these stats when suggesting ability checks, saving throws, and determin
 
 @app.get("/")
 async def get():
-    return FileResponse("app/templates/index.html")
-
-@app.get("/home")
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return {"status": "ok", "message": "D&D AI Game Master API is running"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

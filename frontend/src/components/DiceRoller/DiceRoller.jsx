@@ -87,8 +87,8 @@ const DiceRoller = () => {
     const diceNotation = `[${quantity}d${sides}${modifier > 0 ? '+' + modifier : modifier < 0 ? modifier : ''}]`;
     const description = label ? `${label}: ` : '🎲 Rolling ';
     
-    // Append the roll to the chat input
-    const rollText = `${description}${diceNotation}`;
+    // Append the roll to the chat input, wrapping in backticks for markdown
+    const rollText = `${description}\`${diceNotation}\``;
     setChatInput((chatInput ? chatInput + ' ' : '') + rollText);
 
     // Send roll event to backend

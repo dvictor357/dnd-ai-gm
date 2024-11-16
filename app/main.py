@@ -9,6 +9,7 @@ import os
 import aiohttp
 import asyncio
 import logging
+import re
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime
@@ -83,6 +84,13 @@ class ConnectionManager:
         return self.game_state["rolls"]
 
 manager = ConnectionManager()
+
+def wrap_dice_rolls(text):
+    # Pattern to match dice roll notation [XdY+Z] or [XdY-Z] or [dY]
+    pattern = r'\[(\d*d\d+(?:[+-]\d+)?)\]'
+    
+    # Replace each match with the same text wrapped in backticks
+    return re.sub(pattern, r'`[\1]`', text)
 
 async def get_ai_response(message: str, character: dict = None, conversation_history: list = None) -> str:
     api_key = os.getenv('DEEPSEEK_API_KEY')
@@ -194,7 +202,9 @@ Consider these stats when suggesting ability checks, saving throws, and determin
                 raise Exception(f"API request failed with status {response.status}: {error_text}")
             
             response_json = await response.json()
-            return response_json['choices'][0]['message']['content']
+            response_text = response_json['choices'][0]['message']['content']
+            # Wrap any dice rolls in backticks
+            return wrap_dice_rolls(response_text)
 
 @app.get("/")
 async def get():

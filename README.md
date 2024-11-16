@@ -22,9 +22,9 @@ An interactive multiplayer Dungeons & Dragons game with an AI-powered Game Maste
    ```bash
    pip install -r requirements.txt
    ```
-4. Create a `.env` file in the project root and add your OpenAI API key:
+4. Create a `.env` file in the project root and add your DeepSeek API key:
    ```
-   OPENAI_API_KEY=your_api_key_here
+   DEEPSEEK_API_KEY=your_api_key_here
    ```
 
 ## Running the Game

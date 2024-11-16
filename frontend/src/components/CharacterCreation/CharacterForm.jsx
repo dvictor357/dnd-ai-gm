@@ -11,6 +11,8 @@ const CharacterForm = () => {
     pointsRemaining,
     isCharacterCreated,
     setIsCharacterCreated,
+    setPointsRemaining,
+    setStat,
     ws
   } = useGameStore();
 
@@ -28,6 +30,47 @@ const CharacterForm = () => {
     }
   };
 
+  const handleRandomize = () => {
+    // Random race
+    const randomRace = races[Math.floor(Math.random() * races.length)].name;
+    updateCharacterField('race', randomRace);
+
+    // Random class
+    const randomClass = classes[Math.floor(Math.random() * classes.length)].name;
+    updateCharacterField('class', randomClass);
+
+    // Random stats (keeping total points at 27)
+    const stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+    let remainingPoints = 27;
+    
+    // First set all stats to 8 (minimum)
+    stats.forEach(stat => setStat(stat, 8));
+    remainingPoints -= 6; // 6 stats * 0 points (for 8)
+
+    // Randomly distribute remaining points
+    while (remainingPoints > 0) {
+      const randomStat = stats[Math.floor(Math.random() * stats.length)];
+      const currentValue = character.stats[randomStat];
+      
+      // Cost to increase:
+      // 9-13: 1 point
+      // 14-15: 2 points
+      let maxIncrease = 1;
+      if (currentValue < 13) maxIncrease = Math.min(13 - currentValue, remainingPoints);
+      else if (currentValue < 15 && remainingPoints >= 2) maxIncrease = 1;
+      
+      if (maxIncrease > 0 && currentValue < 15) {
+        const increase = Math.floor(Math.random() * maxIncrease) + 1;
+        const cost = currentValue >= 13 ? increase * 2 : increase;
+        if (cost <= remainingPoints) {
+          setStat(randomStat, currentValue + increase);
+          remainingPoints -= cost;
+        }
+      }
+    }
+    setPointsRemaining(0);
+  };
+
   const stats = [
     { key: 'strength', label: 'Strength' },
     { key: 'dexterity', label: 'Dexterity' },
@@ -42,7 +85,18 @@ const CharacterForm = () => {
   return (
     <form onSubmit={handleSubmit} className="h-full flex flex-col">
       <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex-1 overflow-y-auto">
-        <h2 className="text-2xl font-medieval text-primary-300 mb-6">Create Your Character</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-medieval text-primary-300">Create Your Character</h2>
+          {!isCharacterCreated && (
+            <button
+              type="button"
+              onClick={handleRandomize}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-md shadow-md transition-colors"
+            >
+              Randomize
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-6 mb-6">
           <div>

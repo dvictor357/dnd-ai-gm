@@ -14,14 +14,14 @@ const calculatePointCost = (value) => {
 };
 
 const StatBlock = ({ stat, label }) => {
-  const { character, pointsRemaining, setStat, setPointsRemaining } = useGameStore();
+  const { character, pointsRemaining, setStat, setPointsRemaining, isCharacterCreated } = useGameStore();
   const value = character.stats[stat];
   const modifier = calculateModifier(value);
 
   const handleIncrease = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (value < 15) {
+    if (value < 15 && !isCharacterCreated) {
       const currentCost = calculatePointCost(value);
       const newCost = calculatePointCost(value + 1);
       const pointDifference = newCost - currentCost;
@@ -36,7 +36,7 @@ const StatBlock = ({ stat, label }) => {
   const handleDecrease = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (value > 8) {
+    if (value > 8 && !isCharacterCreated) {
       const currentCost = calculatePointCost(value);
       const newCost = calculatePointCost(value - 1);
       const pointDifference = currentCost - newCost;
@@ -52,7 +52,7 @@ const StatBlock = ({ stat, label }) => {
       <div className="flex items-center">
         <button
           onClick={handleDecrease}
-          disabled={value <= 8}
+          disabled={value <= 8 || isCharacterCreated}
           className="w-6 h-6 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-primary-300 border border-primary-600 font-medieval text-sm transform hover:scale-105 transition-transform duration-200 shadow-md hover:shadow-primary-600/20 rotate-90"
           style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)' }}
         >
@@ -66,7 +66,7 @@ const StatBlock = ({ stat, label }) => {
         </div>
         <button
           onClick={handleIncrease}
-          disabled={value >= 15 || pointsRemaining < calculatePointCost(value + 1) - calculatePointCost(value)}
+          disabled={value >= 15 || pointsRemaining < calculatePointCost(value + 1) - calculatePointCost(value) || isCharacterCreated}
           className="w-6 h-6 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-primary-300 border border-primary-600 font-medieval text-sm transform hover:scale-105 transition-transform duration-200 shadow-md hover:shadow-primary-600/20 rotate-90"
           style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)' }}
         >

@@ -10,6 +10,7 @@ const initialState = {
     name: '',
     race: '',
     class: '',
+    background: '',
     stats: {
       strength: 8,
       dexterity: 8,
@@ -97,15 +98,21 @@ const useGameStore = create((set, get) => ({
   },
 
   updateCharacterField: (field, value) => {
-    set((state) => {
-      const newState = {
+    if (field === 'stats') {
+      set((state) => ({
         character: {
           ...state.character,
-          [field]: value
-        }
-      };
-      return newState;
-    });
+          stats: value,
+        },
+      }));
+    } else {
+      set((state) => ({
+        character: {
+          ...state.character,
+          [field]: value,
+        },
+      }));
+    }
   },
 
   setStat: (stat, value) =>

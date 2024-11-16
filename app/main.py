@@ -137,7 +137,7 @@ Remember: Every location must use #tags#, every character must use @tags@, all d
         }
         
         character_context = f"""
-You are interacting with {character['name']}, a {character['race']} {character['class']}.
+You are interacting with {character['name']}, a {character['race']} {character['class']} with a {character['background']} background.
 
 Character Stats:
 - Strength: {stats_info.get('strength', 10)} (modifier: {modifiers.get('strength', 0)})
@@ -147,7 +147,7 @@ Character Stats:
 - Wisdom: {stats_info.get('wisdom', 10)} (modifier: {modifiers.get('wisdom', 0)})
 - Charisma: {stats_info.get('charisma', 10)} (modifier: {modifiers.get('charisma', 0)})
 
-Consider these stats when suggesting ability checks, saving throws, and determining the success of actions. Address the character by name and consider their racial traits and class abilities in your responses."""
+Consider these stats when suggesting ability checks, saving throws, and determining the success of actions. Address the character by name and consider their racial traits, class abilities, and background story elements in your responses."""
 
     # Prepare conversation history
     messages = [

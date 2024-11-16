@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 
 const initialState = {
+  ws: null,
+  messages: [],
+  chatInput: '',
+  isConnected: false,
+  isCharacterCreated: false,
   character: {
     name: '',
     race: '',
@@ -20,10 +25,6 @@ const initialState = {
     encounterCount: 0,
     rollCount: 0,
   },
-  messages: [],
-  isConnected: false,
-  isCharacterCreated: false,
-  ws: null,
 };
 
 const useGameStore = create((set, get) => ({
@@ -133,6 +134,12 @@ const useGameStore = create((set, get) => ({
 
   setIsCharacterCreated: (isCharacterCreated) =>
     set({ isCharacterCreated }),
+
+  setChatInput: (input) => set({ chatInput: input }),
+
+  setCharacter: (character) => set({ character }),
+
+  setWebSocket: (ws) => set({ ws }),
 
   // Reset store
   resetStore: () => {

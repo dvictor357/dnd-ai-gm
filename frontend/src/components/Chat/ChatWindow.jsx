@@ -9,10 +9,11 @@ const ChatWindow = () => {
     ws,
     addMessage,
     character,
-    isCharacterCreated
+    isCharacterCreated,
+    chatInput,
+    setChatInput,
   } = useGameStore();
 
-  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -24,26 +25,31 @@ const ChatWindow = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Listen for GM responses to reset loading state
+  // Listen for WebSocket messages to handle loading state
   useEffect(() => {
-    const handleGMResponse = () => {
-      setIsLoading(false);
+    if (!ws) return;
+
+    const handleMessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'gm_response') {
+        setIsLoading(false);
+      }
     };
 
-    window.addEventListener('gmResponse', handleGMResponse);
-    return () => window.removeEventListener('gmResponse', handleGMResponse);
-  }, []);
+    ws.addEventListener('message', handleMessage);
+    return () => ws.removeEventListener('message', handleMessage);
+  }, [ws]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!input.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!chatInput.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     setIsLoading(true);
 
     // Add player message
     addMessage({
       type: 'action',
-      content: input,
+      content: chatInput,
       player: {
         name: character.name,
         class: character.class,
@@ -54,7 +60,7 @@ const ChatWindow = () => {
     // Send to server
     ws.send(JSON.stringify({
       type: 'action',
-      content: input,
+      content: chatInput,
       character: {
         name: character.name,
         race: character.race,
@@ -63,7 +69,7 @@ const ChatWindow = () => {
       }
     }));
 
-    setInput('');
+    setChatInput('');
   };
 
   return (
@@ -72,31 +78,40 @@ const ChatWindow = () => {
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}
+        {isLoading && (
+          <div className="flex items-center space-x-2 text-gray-400 animate-pulse">
+            <div className="w-6 h-6">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            </div>
+            <div className="w-6 h-6">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            </div>
+            <div className="w-6 h-6">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <span>Game Master is thinking...</span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
-        <div className="flex flex-col space-y-2">
-
-          <div className="flex space-x-4">
-            <input
-              type="text"
-              value={isLoading ? "The GM is typing..." : input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={!isCharacterCreated || isLoading}
-              placeholder={isCharacterCreated ? "What would you like to do?" : "Create your character to begin..."}
-              className={`flex-1 bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500 ${isLoading ? 'animate-pulse' : ''
-                }`}
-            />
-            <button
-              type="submit"
-              disabled={!isCharacterCreated || isLoading || !input.trim()}
-              className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'animate-pulse' : ''
-                }`}
-            >
-              <PaperAirplaneIcon className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex space-x-4">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            disabled={!isCharacterCreated || isLoading}
+            placeholder={isCharacterCreated ? (isLoading ? "Game Master is thinking..." : "What would you like to do?") : "Create your character to begin..."}
+            className={`flex-1 bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500 ${isLoading ? 'animate-pulse' : ''}`}
+          />
+          <button
+            type="submit"
+            disabled={!isCharacterCreated || isLoading || !chatInput.trim()}
+            className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'animate-pulse' : ''}`}
+          >
+            <PaperAirplaneIcon className="w-5 h-5" />
+          </button>
         </div>
       </form>
     </div>

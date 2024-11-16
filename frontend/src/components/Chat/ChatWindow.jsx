@@ -18,7 +18,16 @@ const ChatWindow = () => {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      const chatContainer = messagesEndRef.current.parentElement;
+      const isScrolledNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+      
+      // Only smooth scroll if user is already near the bottom
+      messagesEndRef.current?.scrollIntoView({
+        behavior: isScrolledNearBottom ? 'smooth' : 'auto',
+        block: 'end'
+      });
+    }
   };
 
   useEffect(() => {
@@ -74,7 +83,7 @@ const ChatWindow = () => {
 
   return (
     <div className="flex flex-col h-full bg-gray-800 rounded-lg shadow-lg">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-12rem)] min-h-[400px]">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}

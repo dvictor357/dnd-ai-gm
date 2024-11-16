@@ -44,7 +44,8 @@ class ConnectionManager:
         self.game_state = {
             "players": {},  # Store player info
             "encounters": 0,
-            "rolls": 0
+            "rolls": 0,
+            "conversations": {}  # Store conversation history per player
         }
 
     async def connect(self, websocket: WebSocket, player_id: str):
@@ -53,25 +54,22 @@ class ConnectionManager:
         self.game_state["players"][player_id] = {
             "joined_at": datetime.now().isoformat()
         }
+        self.game_state["conversations"][player_id] = []
 
     def disconnect(self, player_id: str):
         if player_id in self.active_connections:
             del self.active_connections[player_id]
         if player_id in self.game_state["players"]:
             del self.game_state["players"][player_id]
+        if player_id in self.game_state["conversations"]:
+            del self.game_state["conversations"][player_id]
 
-    async def broadcast(self, message: dict):
-        disconnected_players = []
-        for player_id, connection in self.active_connections.items():
-            try:
-                await connection.send_json(message)
-            except Exception as e:
-                logging.error(f"Error broadcasting to {player_id}: {str(e)}")
-                disconnected_players.append(player_id)
-        
-        # Clean up disconnected players
-        for player_id in disconnected_players:
-            self.disconnect(player_id)
+    def add_to_conversation(self, player_id: str, message: dict):
+        if player_id not in self.game_state["conversations"]:
+            self.game_state["conversations"][player_id] = []
+        self.game_state["conversations"][player_id].append(message)
+        # Keep only last 10 messages for context
+        self.game_state["conversations"][player_id] = self.game_state["conversations"][player_id][-10:]
 
     def get_player_count(self):
         return len(self.active_connections)
@@ -86,7 +84,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-async def get_ai_response(message: str, character: dict = None) -> str:
+async def get_ai_response(message: str, character: dict = None, conversation_history: list = None) -> str:
     api_key = os.getenv('DEEPSEEK_API_KEY')
     if not api_key:
         raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
@@ -98,6 +96,7 @@ async def get_ai_response(message: str, character: dict = None) -> str:
    - Create an immersive atmosphere
    - Maintain a consistent tone
    - Use markdown formatting for emphasis
+   - Keep track of the ongoing story and maintain narrative consistency
 
 2. **Game Mechanics**:
    - Incorporate D&D 5e rules naturally
@@ -121,6 +120,7 @@ async def get_ai_response(message: str, character: dict = None) -> str:
    - Reference established D&D lore appropriately
    - Create interesting plot hooks
    - Adapt encounters to character's level and abilities
+   - Maintain consistency with previously described locations and NPCs
 
 5. **Response Format**:
    - Use clear paragraph breaks for readability
@@ -128,7 +128,7 @@ async def get_ai_response(message: str, character: dict = None) -> str:
    - Use *italics* for atmospheric details
    - Include `code blocks` for game mechanics
 
-Always maintain the fantasy atmosphere while being helpful and encouraging to players. End your responses with a clear hook or prompt for player action."""
+Always maintain the fantasy atmosphere while being helpful and encouraging to players. Keep track of the ongoing narrative and maintain consistency with previous interactions. End your responses with a clear hook or prompt for player action."""
 
     # Create character context if character info is provided
     character_context = ""
@@ -152,6 +152,26 @@ Character Stats:
 
 Consider these stats when suggesting ability checks, saving throws, and determining the success of actions. Address the character by name and consider their racial traits and class abilities in your responses."""
 
+    # Prepare conversation history
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": character_context} if character else None,
+    ]
+
+    # Add conversation history if available
+    if conversation_history:
+        for hist in conversation_history:
+            if hist["type"] == "action":
+                messages.append({"role": "user", "content": hist["content"]})
+            elif hist["type"] == "gm_response":
+                messages.append({"role": "assistant", "content": hist["content"]})
+
+    # Add current message
+    messages.append({"role": "user", "content": message})
+    
+    # Remove None messages
+    messages = [msg for msg in messages if msg is not None]
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -162,11 +182,7 @@ Consider these stats when suggesting ability checks, saving throws, and determin
             "https://api.deepseek.com/v1/chat/completions",
             json={
                 "model": "deepseek-chat",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "system", "content": character_context} if character else None,
-                    {"role": "user", "content": message}
-                ],
+                "messages": messages,
                 "temperature": 0.7,
                 "max_tokens": 800,
                 "stop": None
@@ -215,28 +231,54 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
             
             elif data["type"] == "action":
-                # Get AI response with character context
-                response = await get_ai_response(
-                    message=data["content"],
-                    character=data.get("character")
-                )
-                
-                # Send response back to client
-                await websocket.send_json({
-                    "type": "gm_response",
-                    "content": response
-                })
-                
-                # Update encounter count (you might want to make this more sophisticated)
-                manager.game_state["encounters"] += 1
-                
-                # Send updated stats
-                await websocket.send_json({
-                    "type": "state_update",
-                    "players": len(manager.game_state["players"]),
-                    "encounters": manager.game_state["encounters"],
-                    "rolls": manager.game_state["rolls"]
-                })
+                player_id = None
+                # Find player ID based on character data
+                if "character" in data:
+                    char_name = data["character"]["name"]
+                    for pid, pdata in manager.game_state["players"].items():
+                        if pdata.get("name") == char_name:
+                            player_id = pid
+                            break
+
+                if player_id:
+                    # Add player's message to conversation history
+                    manager.add_to_conversation(player_id, {
+                        "type": "action",
+                        "content": data["content"]
+                    })
+
+                    # Get conversation history
+                    conversation_history = manager.game_state["conversations"].get(player_id, [])
+
+                    # Get AI response with character context and conversation history
+                    response = await get_ai_response(
+                        message=data["content"],
+                        character=data.get("character"),
+                        conversation_history=conversation_history
+                    )
+
+                    # Add GM's response to conversation history
+                    manager.add_to_conversation(player_id, {
+                        "type": "gm_response",
+                        "content": response
+                    })
+                    
+                    # Send response back to client
+                    await websocket.send_json({
+                        "type": "gm_response",
+                        "content": response
+                    })
+                    
+                    # Update encounter count
+                    manager.game_state["encounters"] += 1
+                    
+                    # Send updated stats
+                    await websocket.send_json({
+                        "type": "state_update",
+                        "players": len(manager.game_state["players"]),
+                        "encounters": manager.game_state["encounters"],
+                        "rolls": manager.game_state["rolls"]
+                    })
     
     except WebSocketDisconnect:
         # Handle disconnect

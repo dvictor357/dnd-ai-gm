@@ -74,13 +74,36 @@ const ChatMessage = ({ message }) => {
                   strong: ({ children }) => <strong className="magical-text">{children}</strong>,
                   em: ({ children }) => <em className="text-amber-200/90">{children}</em>,
                   code: ({ children }) => {
-                    const isDiceRoll = /^\[?d\d+|^\[?\d+d\d+/.test(children);
+                    // Enhanced dice roll pattern detection
+                    const dicePattern = /^(?:\[)?(?:(?:\d+)?d\d+(?:\s*[+-]\s*\d+)?|\d+)(?:\])?$/i;
+                    const isDiceRoll = dicePattern.test(children);
+                    const content = children.toString().replace(/^\[|\]$/g, '');
+                    
+                    if (isDiceRoll) {
+                      // Parse the dice roll components
+                      const parts = content.match(/^(\d+)?d(\d+)(?:\s*([+-])\s*(\d+))?$/i);
+                      if (parts) {
+                        const [_, numDice = '1', diceType, modifier, modValue] = parts;
+                        return (
+                          <code className="inline-flex items-center gap-1 px-2 py-1 bg-purple-900/30 text-purple-300 font-medieval glow-dice rounded-lg transform hover:scale-105 transition-all duration-200">
+                            <span className="text-purple-400">{numDice}</span>
+                            <span className="text-purple-300">d</span>
+                            <span className="text-purple-400">{diceType}</span>
+                            {modifier && (
+                              <>
+                                <span className="text-purple-300">{modifier}</span>
+                                <span className="text-purple-400">{modValue}</span>
+                              </>
+                            )}
+                          </code>
+                        );
+                      }
+                    }
+                    
+                    // Regular code styling
                     return (
-                      <code className={`inline-block ${isDiceRoll
-                          ? 'bg-purple-900/30 text-purple-300 font-medieval glow-dice'
-                          : 'bg-cyan-900/30 text-cyan-300 font-medieval glow-sm'
-                        }`}>
-                        {children.toString().replace(/^\[|\]$/g, '')}
+                      <code className="inline-block px-1.5 py-0.5 bg-cyan-900/30 text-cyan-300 font-medieval glow-sm rounded">
+                        {content}
                       </code>
                     );
                   },

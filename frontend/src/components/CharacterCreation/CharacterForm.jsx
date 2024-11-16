@@ -1,6 +1,7 @@
 import React from 'react';
 import useGameStore from '../../store/gameStore';
 import StatBlock from './StatBlock';
+import ColorLegend from '../Character/ColorLegend';
 import { races, classes } from '../../data/characterOptions';
 
 const CharacterForm = () => {
@@ -118,15 +119,19 @@ const CharacterForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end flex-col">
-          <button
-            type="submit"
-            disabled={!isFormValid}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medieval transition-colors"
-          >
-            Begin Adventure
-          </button>
-        </div>
+        {!isCharacterCreated && (
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={!isFormValid}
+              className="px-6 py-3 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medieval transition-colors"
+            >
+              Begin Adventure
+            </button>
+          </div>
+        )}
+        
+        {isCharacterCreated && <ColorLegend />}
       </div>
     </form>
   );

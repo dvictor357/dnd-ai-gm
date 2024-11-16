@@ -86,7 +86,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-async def get_ai_response(message: str) -> str:
+async def get_ai_response(message: str, character: dict = None) -> str:
     api_key = os.getenv('DEEPSEEK_API_KEY')
     if not api_key:
         raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
@@ -104,18 +104,23 @@ async def get_ai_response(message: str) -> str:
    - Suggest appropriate skill checks when relevant
    - Format dice rolls as `[d20+5]` or `[2d6]`
    - Highlight important game terms in **bold**
+   - Consider character's stats for ability checks and saving throws
+   - Respect character's race and class abilities
 
 3. **Character Interaction**:
    - Respond to player actions dynamically
    - Create memorable NPCs with distinct personalities
    - Use *italics* for character thoughts or emphasis
    - Include character emotions and reactions
+   - Address the character by their name
+   - Consider racial traits and class features in responses
 
 4. **World Building**:
    - Create rich, detailed environments
    - Include sensory details (sights, sounds, smells)
    - Reference established D&D lore appropriately
    - Create interesting plot hooks
+   - Adapt encounters to character's level and abilities
 
 5. **Response Format**:
    - Use clear paragraph breaks for readability
@@ -124,6 +129,28 @@ async def get_ai_response(message: str) -> str:
    - Include `code blocks` for game mechanics
 
 Always maintain the fantasy atmosphere while being helpful and encouraging to players. End your responses with a clear hook or prompt for player action."""
+
+    # Create character context if character info is provided
+    character_context = ""
+    if character:
+        stats_info = character.get('stats', {})
+        modifiers = {
+            stat: (value - 10) // 2
+            for stat, value in stats_info.items()
+        }
+        
+        character_context = f"""
+You are interacting with {character['name']}, a {character['race']} {character['class']}.
+
+Character Stats:
+- Strength: {stats_info.get('strength', 10)} (modifier: {modifiers.get('strength', 0)})
+- Dexterity: {stats_info.get('dexterity', 10)} (modifier: {modifiers.get('dexterity', 0)})
+- Constitution: {stats_info.get('constitution', 10)} (modifier: {modifiers.get('constitution', 0)})
+- Intelligence: {stats_info.get('intelligence', 10)} (modifier: {modifiers.get('intelligence', 0)})
+- Wisdom: {stats_info.get('wisdom', 10)} (modifier: {modifiers.get('wisdom', 0)})
+- Charisma: {stats_info.get('charisma', 10)} (modifier: {modifiers.get('charisma', 0)})
+
+Consider these stats when suggesting ability checks, saving throws, and determining the success of actions. Address the character by name and consider their racial traits and class abilities in your responses."""
 
     headers = {
         "Content-Type": "application/json",
@@ -137,6 +164,7 @@ Always maintain the fantasy atmosphere while being helpful and encouraging to pl
                 "model": "deepseek-chat",
                 "messages": [
                     {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": character_context} if character else None,
                     {"role": "user", "content": message}
                 ],
                 "temperature": 0.7,
@@ -187,8 +215,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
             
             elif data["type"] == "action":
-                # Get AI response
-                response = await get_ai_response(data["content"])
+                # Get AI response with character context
+                response = await get_ai_response(
+                    message=data["content"],
+                    character=data.get("character")
+                )
                 
                 # Send response back to client
                 await websocket.send_json({

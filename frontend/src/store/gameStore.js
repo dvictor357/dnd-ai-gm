@@ -65,18 +65,29 @@ const useGameStore = create((set, get) => ({
     };
 
     websocket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-
-      if (message.type === 'gm_response') {
-        get().addMessage(message);
-        window.dispatchEvent(new CustomEvent('gmResponse'));
-      } else if (message.type === 'system') {
-        get().addMessage(message);
-      } else if (message.type === 'state_update') {
+      const data = JSON.parse(event.data);
+      
+      // Handle GM response
+      if (data.type === 'gm_response') {
+        get().addMessage({
+          type: 'gm_response',
+          content: data.content,
+          character: get().character // Include character context in GM messages
+        });
+        window.dispatchEvent(new Event('gmResponse'));
+      }
+      
+      // Handle system messages
+      if (data.type === 'system') {
+        get().addMessage({
+          type: 'system',
+          content: data.content
+        });
+      } else if (data.type === 'state_update') {
         get().setGameStats({
-          playerCount: message.players,
-          encounterCount: message.encounters,
-          rollCount: message.rolls
+          playerCount: data.players,
+          encounterCount: data.encounters,
+          rollCount: data.rolls
         });
       }
     };

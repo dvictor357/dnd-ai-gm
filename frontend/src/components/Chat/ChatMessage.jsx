@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserIcon, ComputerDesktopIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import ReactMarkdown from 'react-markdown';
 
 const ChatMessage = ({ message }) => {
   const getMessageStyle = () => {
@@ -63,20 +64,32 @@ const ChatMessage = ({ message }) => {
               </span>
             )}
           </p>
-          <div className={`text-white prose prose-invert max-w-none ${
-            message.type === 'gm_response' ? 'prose-p:leading-relaxed prose-strong:text-cyan-300 prose-strong:font-medieval prose-em:text-amber-200/90' : ''
-          }`}>
+          <div className={`prose prose-invert max-w-none ${message.type === 'gm_response'
+              ? 'prose-p:leading-relaxed prose-p:text-white prose-strong:text-cyan-300 prose-strong:font-medieval prose-em:text-amber-200/90 prose-code:text-cyan-300 prose-code:bg-cyan-900/30 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-medieval prose-code:glow-sm prose-pre:bg-transparent'
+              : 'text-white'
+            }`}>
             {message.type === 'gm_response' ? (
-              <div 
-                className="space-y-2"
-                dangerouslySetInnerHTML={{ 
-                  __html: message.content
-                    .replace(/\*\*(.*?)\*\*/g, '<strong class="magical-text">$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/\n/g, '<br>')
-                    .replace(/\[(\w+)\]/g, '<span class="px-1.5 py-0.5 bg-cyan-900/30 text-cyan-300 rounded font-medieval glow-sm">$1</span>')
-                }} 
-              />
+              <ReactMarkdown
+                components={{
+                  strong: ({ children }) => <strong className="magical-text">{children}</strong>,
+                  em: ({ children }) => <em className="text-amber-200/90">{children}</em>,
+                  code: ({ children }) => {
+                    const isDiceRoll = /^\[?d\d+|^\[?\d+d\d+/.test(children);
+                    return (
+                      <code className={`inline-block ${isDiceRoll
+                          ? 'bg-purple-900/30 text-purple-300 font-medieval glow-dice'
+                          : 'bg-cyan-900/30 text-cyan-300 font-medieval glow-sm'
+                        }`}>
+                        {children.toString().replace(/^\[|\]$/g, '')}
+                      </code>
+                    );
+                  },
+                  p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                  pre: ({ children }) => <pre className="bg-transparent p-0">{children}</pre>
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             ) : (
               <p>{message.content}</p>
             )}

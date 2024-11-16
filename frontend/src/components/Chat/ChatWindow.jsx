@@ -54,7 +54,13 @@ const ChatWindow = () => {
     // Send to server
     ws.send(JSON.stringify({
       type: 'action',
-      content: input
+      content: input,
+      character: {
+        name: character.name,
+        race: character.race,
+        class: character.class,
+        stats: character.stats
+      }
     }));
 
     setInput('');

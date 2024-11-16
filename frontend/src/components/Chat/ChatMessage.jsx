@@ -71,7 +71,7 @@ const customComponents = {
 // Component for GM badge
 const GMBadge = () => (
   <span className="ml-2 px-2 py-0.5 text-xs bg-amber-900/40 text-amber-200 rounded-full border border-amber-700/30 shadow-inner shadow-amber-900/20">
-    GM
+    AI Game Master
   </span>
 );
 

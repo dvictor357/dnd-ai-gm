@@ -21,7 +21,7 @@ const ChatWindow = () => {
     if (messagesEndRef.current) {
       const chatContainer = messagesEndRef.current.parentElement;
       const isScrolledNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-      
+
       // Only smooth scroll if user is already near the bottom
       messagesEndRef.current?.scrollIntoView({
         behavior: isScrolledNearBottom ? 'smooth' : 'auto',
@@ -74,7 +74,8 @@ const ChatWindow = () => {
         name: character.name,
         race: character.race,
         class: character.class,
-        stats: character.stats
+        stats: character.stats,
+        background: character.background
       }
     }));
 

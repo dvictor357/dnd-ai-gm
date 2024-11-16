@@ -2,7 +2,6 @@ import React from 'react';
 import useGameStore from '../../store/gameStore';
 import StatBlock from './StatBlock';
 import ColorLegend from '../Character/ColorLegend';
-import D20Icon from '../Icons/D20Icon';
 
 const races = [
   { name: "Human" },
@@ -111,7 +110,7 @@ const CharacterForm = () => {
 
     const stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
     let remainingPoints = 27;
-    
+
     // First set all stats to 8 (minimum)
     stats.forEach(stat => setStat(stat, 8));
 
@@ -119,10 +118,10 @@ const CharacterForm = () => {
     while (remainingPoints > 0) {
       const randomStat = stats[Math.floor(Math.random() * stats.length)];
       const currentValue = character.stats[randomStat];
-      
+
       // Calculate cost for next point
       const nextCost = currentValue >= 13 ? 2 : 1;
-      
+
       // Check if we can increase this stat
       if (currentValue < 15 && remainingPoints >= nextCost) {
         setStat(randomStat, currentValue + 1);
@@ -144,7 +143,7 @@ const CharacterForm = () => {
   ];
 
   const isFormValid = !isCharacterCreated && pointsRemaining === 0 && character.name && character.race && character.class;
-  
+
   // Allow decreasing stats even when no points remaining
   const canIncreaseStats = !isCharacterCreated && pointsRemaining > 0;
 
@@ -187,10 +186,10 @@ const CharacterForm = () => {
                       const score = character.stats[key];
                       const modifier = Math.floor((score - 10) / 2);
                       const modifierText = modifier >= 0 ? `+${modifier}` : modifier;
-                      
+
                       return (
-                        <div 
-                          key={key} 
+                        <div
+                          key={key}
                           className="bg-gray-800/40 p-3 rounded-lg backdrop-blur-sm flex flex-col items-center"
                         >
                           <div className="text-sm text-gray-400 mb-1">{label}</div>

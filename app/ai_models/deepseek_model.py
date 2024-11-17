@@ -77,7 +77,7 @@ Consider these stats when suggesting ability checks, saving throws, and determin
             json={
                 "model": "deepseek-chat",
                 "messages": messages,
-                "temperature": 0.7,
+                "temperature": 0.75,
                 "max_tokens": 800,
                 "stop": None
             },

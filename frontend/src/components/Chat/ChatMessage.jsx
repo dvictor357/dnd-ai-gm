@@ -12,23 +12,44 @@ const processSpecialFormatting = (text) => {
   // Helper to find all non-overlapping matches with their positions
   const findMatches = (text) => {
     const patterns = [
-      { regex: /@[^@]+?@/g, type: 'char' },  // Characters must be processed first
-      { regex: /#[^#]+?#/g, type: 'loc' },   // Then locations
-      { regex: /"[^"]+?"/g, type: 'dial' },  // Then dialogue
-      { regex: /\*\*[^*]+?\*\*/g, type: 'strong' },  // Then bold
-      { regex: /\*[^*]+?\*/g, type: 'em' }   // Then italic
+      // Process markdown first to handle nested formatting
+      { regex: /\*\*(?:[^*]|\*(?!\*))+\*\*/g, type: 'strong' },  // Bold text
+      { regex: /\*(?:[^*])+\*/g, type: 'em' },                   // Italic text
+      // Then process special formatting
+      { regex: /@(?:[^@])+@/g, type: 'char' },                  // Characters
+      { regex: /#(?:[^#])+#/g, type: 'loc' },                   // Locations
+      { regex: /"(?:[^"])+"/g, type: 'dial' }                   // Dialogue
     ];
 
     let matches = [];
+    let skipRanges = new Set(); // Track ranges to skip
+
     patterns.forEach(({ regex, type }) => {
       let match;
       while ((match = regex.exec(text)) !== null) {
-        matches.push({
-          text: match[0],
-          start: match.index,
-          end: match.index + match[0].length,
-          type
-        });
+        const start = match.index;
+        const end = start + match[0].length;
+        
+        // Check if this match overlaps with any skip range
+        let shouldSkip = false;
+        for (let range of skipRanges) {
+          const [rangeStart, rangeEnd] = range.split('-').map(Number);
+          if (start < rangeEnd && end > rangeStart) {
+            shouldSkip = true;
+            break;
+          }
+        }
+
+        if (!shouldSkip) {
+          matches.push({
+            text: match[0],
+            start,
+            end,
+            type
+          });
+          // Add this range to skip ranges
+          skipRanges.add(`${start}-${end}`);
+        }
       }
     });
 
@@ -48,18 +69,17 @@ const processSpecialFormatting = (text) => {
 
   // Helper to convert match to markdown
   const convertToMarkdown = (match) => {
-    const content = match.text.slice(1, -1).trim();
     switch (match.type) {
-      case 'char':
-        return '`char:' + content + '`';
-      case 'loc':
-        return '`loc:' + content + '`';
-      case 'dial':
-        return '`dial:' + content + '`';
       case 'strong':
-        return '**' + content + '**';
+        return match.text; // Keep ** as is
       case 'em':
-        return '*' + content + '*';
+        return match.text; // Keep * as is
+      case 'char':
+        return '`char:' + match.text.slice(1, -1).trim() + '`';
+      case 'loc':
+        return '`loc:' + match.text.slice(1, -1).trim() + '`';
+      case 'dial':
+        return '`dial:' + match.text.slice(1, -1).trim() + '`';
       default:
         return match.text;
     }

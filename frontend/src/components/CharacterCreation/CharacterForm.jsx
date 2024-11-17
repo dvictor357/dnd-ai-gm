@@ -58,6 +58,20 @@ const CharacterForm = () => {
     ws
   } = useGameStore();
 
+  // Point buy costs for each ability score
+  const POINT_COSTS = {
+    8: 0,
+    9: 1,
+    10: 2,
+    11: 3,
+    12: 4,
+    13: 5,
+    14: 7,
+    15: 9
+  };
+
+  const getPointCost = (score) => POINT_COSTS[score] || 0;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!character.name || !character.race || !character.class || pointsRemaining > 0) {
@@ -79,20 +93,17 @@ const CharacterForm = () => {
     // Check if the new value is within bounds
     if (newValue < 8 || newValue > 15) return;
 
-    // Calculate point cost/refund
-    let pointCost = 1;
-    if (change > 0 && currentValue >= 13) {
-      pointCost = 2;
-    } else if (change < 0 && currentValue > 13) {
-      pointCost = 2;
-    }
+    // Calculate point difference
+    const currentCost = getPointCost(currentValue);
+    const newCost = getPointCost(newValue);
+    const pointDifference = newCost - currentCost;
 
     // Check if we have enough points for increase
-    if (change > 0 && pointsRemaining < pointCost) return;
+    if (pointDifference > pointsRemaining) return;
 
     // Update the stat and points
     setStat(stat, newValue);
-    setPointsRemaining(pointsRemaining - (change * pointCost));
+    setPointsRemaining(pointsRemaining - pointDifference);
   };
 
   const stats = [

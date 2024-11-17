@@ -1,6 +1,7 @@
 import os
 import logging
 import aiohttp
+import re
 from typing import Dict, List, Optional
 from .base import AIModel
 
@@ -32,8 +33,11 @@ class OpenRouterModel(AIModel):
         character: Optional[Dict] = None,
         conversation_history: Optional[List[Dict]] = None
     ) -> str:
+        # Add formatting reinforcement to system prompt
+        enhanced_prompt = self._enhance_system_prompt(system_prompt)
+        
         # Prepare messages
-        messages = [{"role": "system", "content": system_prompt}]
+        messages = [{"role": "system", "content": enhanced_prompt}]
 
         # Add character context if provided
         if character:
@@ -48,6 +52,12 @@ class OpenRouterModel(AIModel):
                 elif hist["type"] == "gm_response":
                     messages.append({"role": "assistant", "content": hist["content"]})
 
+        # Add formatting reminder before user message
+        messages.append({
+            "role": "system",
+            "content": "Remember to use proper formatting:\n- Locations in #tags#\n- Characters in @tags@\n- Dialogue in \"quotes\"\n- Descriptions in *italics*\n- Game mechanics in **bold**\n- Dice rolls in `[XdY+Z]`"
+        })
+
         # Add current message
         messages.append({"role": "user", "content": message})
         messages = [msg for msg in messages if msg is not None]
@@ -56,10 +66,62 @@ class OpenRouterModel(AIModel):
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                 response = await self._make_api_request(session, messages)
-                return response
+                # Post-process the response to ensure proper formatting
+                formatted_response = self._ensure_formatting(response)
+                return formatted_response
         except Exception as e:
             logging.error(f"Error generating response: {str(e)}")
             return "I apologize, but I'm having trouble processing your request at the moment. Please try again."
+
+    def _enhance_system_prompt(self, system_prompt: str) -> str:
+        """Add additional formatting instructions to the system prompt."""
+        extra_instructions = """
+
+IMPORTANT: You must strictly follow these formatting rules for EVERY response:
+1. ALWAYS wrap location names in #hashtags#
+2. ALWAYS wrap character/NPC names in @at-signs@
+3. ALWAYS wrap dialogue in "double quotes"
+4. ALWAYS wrap atmospheric descriptions in *asterisks*
+5. ALWAYS wrap game mechanics and rules in **double asterisks**
+6. ALWAYS format dice rolls as `[XdY+Z]` in backticks
+
+Example of a properly formatted response:
+*The torches flicker in* #The Dragon's Rest Tavern# *as* @Bartender Gorm@ *wipes down the counter.*
+"What brings you to our humble establishment?" *he asks with a gruff voice.*
+**To learn more about the local rumors, make a Charisma (Persuasion) check** `[d20+2]`
+
+Your response MUST include ALL these formatting elements."""
+
+        return system_prompt + extra_instructions
+
+    def _ensure_formatting(self, text: str) -> str:
+        """Post-process the response to ensure proper formatting."""
+        # List of common formatting fixes
+        fixes = [
+            # Fix location tags
+            (r'(?<![#\w])(the )?([A-Z][a-zA-Z\' ]+(?:Tavern|Inn|Castle|Keep|Forest|Cave|Temple|Tower|City|Town|Village|Market|Square|Gate|Bridge|River|Mountain|Valley|Road|Path|Guild|Shop|Store|Hall|Throne|Chamber|Room|Dungeon|Lair|Haven|Sanctum|Arena|Port|Bay|Sea|Lake|Woods|Grove|Sanctuary|Tomb|Crypt|Mine|Camp|Fort|Fortress|Palace|Cathedral|Abbey|Monastery|Shrine|Outpost|Settlement|Quarter|District|Slums|Docks|Garden|Park|Academy|School|Library|Museum|Theater|Arena|Barracks|Prison|Jail|Embassy|Manor|Estate|Villa|Cottage|Farm|Mill|Smithy|Forge|Workshop|Laboratory|Observatory|Lighthouse|Windmill|Warehouse|Market|Bazaar|Fair|Festival|Carnival|Circus|Stadium|Colosseum|Amphitheater))\b(?![#\w])', r'#\2#'),
+            
+            # Fix character tags
+            (r'(?<![@\w])(the )?((?:Lord|Lady|King|Queen|Prince|Princess|Duke|Duchess|Baron|Baroness|Count|Countess|Sir|Dame|Captain|Commander|General|Admiral|Wizard|Mage|Sorcerer|Warlock|Cleric|Priest|Priestess|Bishop|Archbishop|Pope|Emperor|Empress|Merchant|Trader|Innkeeper|Blacksmith|Guard|Soldier|Knight|Squire|Page|Ranger|Hunter|Tracker|Scout|Rogue|Thief|Assassin|Bard|Minstrel|Healer|Doctor|Alchemist|Scholar|Sage|Master|Apprentice|Elder|Chief|Leader|Warrior|Fighter|Paladin|Monk|Druid|Shaman|Necromancer|Summoner|Enchanter|Artificer|Smith|Craftsman|Artist|Performer|Dancer|Singer|Actor|Messenger|Courier|Servant|Slave|Peasant|Farmer|Fisherman|Miner|Logger|Hunter|Trapper|Sailor|Pirate|Bandit|Mercenary|Gladiator|Champion|Hero|Villain|Dragon|Giant|Troll|Ogre|Orc|Goblin|Hobgoblin|Kobold|Gnoll|Bugbear|Minotaur|Centaur|Satyr|Fairy|Pixie|Sprite|Nymph|Dryad|Unicorn|Phoenix|Griffin|Hippogriff|Pegasus|Wyvern|Basilisk|Chimera|Hydra|Kraken|Leviathan|Demon|Devil|Angel|Celestial|Elemental|Ghost|Spirit|Wraith|Specter|Vampire|Werewolf|Zombie|Skeleton|Lich|Mummy|Golem|Construct|Elemental|Outsider|Aberration|Monster|Beast|Creature) [A-Z][a-zA-Z\' ]+)\b(?![@\w])', r'@\2@'),
+            
+            # Ensure dialogue is in quotes
+            (r'(?<!")([A-Z][^\.!?\n]*(?:[\.,!?]+|[:,] "|"))(?!")', r'"\1"'),
+            
+            # Ensure game mechanics are bold
+            (r'(?<!\*\*)(Make an? (?:Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma)(?: \([A-Za-z]+\))? (?:check|save|saving throw|ability check)(?:\.|,)?|DC \d+|Initiative|Attack Roll|Damage Roll)(?!\*\*)', r'**\1**'),
+            
+            # Fix dice roll formatting
+            (r'(?<!`)\[(d20|[1-9]\d*d(?:4|6|8|10|12|20|100)(?:[+-][1-9]\d*)?)\](?!`)', r'`[\1]`'),
+            
+            # Ensure descriptions are in italics
+            (r'(?<!\*)((?:(?:The|A|An) )?(?:air|room|chamber|area|space|atmosphere|environment) (?:is|feels|seems|appears|becomes) [^\.!?\n]+[\.!?])(?!\*)', r'*\1*')
+        ]
+        
+        result = text
+        for pattern, replacement in fixes:
+            result = re.sub(pattern, replacement, result)
+        
+        return result
 
     def _create_character_context(self, character: Dict) -> str:
         stats_info = character.get('stats', {})

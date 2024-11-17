@@ -39,7 +39,6 @@ class ConnectionManager:
         }
 
     async def connect(self, websocket: WebSocket, player_id: str):
-        await websocket.accept()
         self.active_connections[player_id] = websocket
         self.game_state["players"][player_id] = {
             "joined_at": datetime.now().isoformat()
@@ -85,6 +84,10 @@ async def get_ai_response(message: str, character: dict = None, conversation_his
     api_key = os.getenv('DEEPSEEK_API_KEY')
     if not api_key:
         raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
+
+    # Truncate conversation history to last 10 messages to prevent context overflow
+    if conversation_history:
+        conversation_history = conversation_history[-10:]
 
     system_prompt = """You are an AI Dungeon Master for a D&D 5e game. Guide players through their adventure while following these strict formatting guidelines:
 
@@ -174,26 +177,39 @@ Consider these stats when suggesting ability checks, saving throws, and determin
         "Authorization": f"Bearer {api_key}"
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            json={
-                "model": "deepseek-chat",
-                "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 800,
-                "stop": None
-            },
-            headers=headers
-        ) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                raise Exception(f"API request failed with status {response.status}: {error_text}")
-            
-            response_json = await response.json()
-            response_text = response_json['choices'][0]['message']['content']
-            # Wrap any dice rolls in backticks
-            return wrap_dice_rolls(response_text)
+    try:
+        timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                json={
+                    "model": "deepseek-chat",
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 800,
+                    "stop": None
+                },
+                headers=headers
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logging.error(f"API request failed with status {response.status}: {error_text}")
+                    return "I apologize, but I'm having trouble processing your request at the moment. Please try again."
+                
+                try:
+                    response_json = await response.json()
+                    response_text = response_json['choices'][0]['message']['content']
+                    return wrap_dice_rolls(response_text)
+                except (KeyError, json.JSONDecodeError) as e:
+                    logging.error(f"Error parsing API response: {str(e)}")
+                    return "I encountered an error while processing the response. Please try again."
+                
+    except asyncio.TimeoutError:
+        logging.error("API request timed out")
+        return "I apologize, but the response is taking longer than expected. Please try a shorter or simpler action."
+    except Exception as e:
+        logging.error(f"Unexpected error in get_ai_response: {str(e)}")
+        return "An unexpected error occurred. Please try again."
 
 @app.get("/")
 async def get():
@@ -209,12 +225,35 @@ async def websocket_endpoint(websocket: WebSocket):
             if data["type"] == "character_created":
                 char_data = data["data"]
                 player_id = f"{char_data['name']}_{datetime.now().timestamp()}"
-                manager.game_state["players"][player_id] = char_data
                 
-                # Send confirmation back to client
+                # Initialize player data
+                await manager.connect(websocket, player_id)
+                manager.game_state["players"][player_id].update(char_data)
+                
+                # Send welcome message
                 await websocket.send_json({
                     "type": "system",
                     "content": f"Welcome, {char_data['name']} the {char_data['race']} {char_data['class']}! Your adventure begins..."
+                })
+                
+                # Get initial AI response to start the adventure
+                initial_prompt = f"Begin a new adventure for {char_data['name']}, a {char_data['race']} {char_data['class']} with a {char_data['background']} background. Set the scene and give them their first choice of action."
+                
+                response = await get_ai_response(
+                    message=initial_prompt,
+                    character=char_data
+                )
+                
+                # Add GM's response to conversation history
+                manager.add_to_conversation(player_id, {
+                    "type": "gm_response",
+                    "content": response
+                })
+                
+                # Send the initial scene to the player
+                await websocket.send_json({
+                    "type": "gm_response",
+                    "content": response
                 })
                 
                 # Update all clients with new player count
@@ -286,10 +325,41 @@ async def websocket_endpoint(websocket: WebSocket):
                         "encounters": manager.game_state["encounters"],
                         "rolls": manager.game_state["rolls"]
                     })
+            
+            elif data["type"] == "end_game":
+                # Find player ID based on character data
+                if "character" in data:
+                    char_name = data["character"]["name"]
+                    player_id = None
+                    for pid, pdata in manager.game_state["players"].items():
+                        if pdata.get("name") == char_name:
+                            player_id = pid
+                            break
+                    
+                    if player_id:
+                        # Clean up player data
+                        manager.disconnect(player_id)
+                        
+                        # Send confirmation message
+                        await websocket.send_json({
+                            "type": "system",
+                            "content": f"Farewell, {char_name}! Your adventure has ended."
+                        })
+                        
+                        # Update all clients with new player count
+                        await websocket.send_json({
+                            "type": "state_update",
+                            "players": len(manager.game_state["players"]),
+                            "encounters": manager.game_state["encounters"],
+                            "rolls": manager.game_state["rolls"]
+                        })
     
     except WebSocketDisconnect:
-        # Handle disconnect
-        pass
+        # Find and clean up disconnected player's data
+        for pid, ws in manager.active_connections.items():
+            if ws == websocket:
+                manager.disconnect(pid)
+                break
     except Exception as e:
         # Log the error and send error message to client
         logging.error(f"WebSocket error: {str(e)}")

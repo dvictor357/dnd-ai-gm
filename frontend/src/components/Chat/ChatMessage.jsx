@@ -6,66 +6,141 @@ import DiceRollCode from './DiceRollCode';
 
 // Process special formatting before markdown
 const processSpecialFormatting = (text) => {
-  // First, escape any existing HTML tags to prevent conflicts
-  text = text.replace(/[<>]/g, match => match === '<' ? '&lt;' : '&gt;');
+  // Helper to escape HTML but preserve markdown
+  const escapeHTML = (str) => str.replace(/[<>]/g, match => match === '<' ? '&lt;' : '&gt;');
 
-  // Convert #...# to custom markdown for locations
-  text = text.replace(/#([^#]+?)#/g, '`loc:$1`');
+  // Helper to find all non-overlapping matches with their positions
+  const findMatches = (text) => {
+    const patterns = [
+      { regex: /@[^@]+?@/g, type: 'char' },  // Characters must be processed first
+      { regex: /#[^#]+?#/g, type: 'loc' },   // Then locations
+      { regex: /"[^"]+?"/g, type: 'dial' },  // Then dialogue
+      { regex: /\*\*[^*]+?\*\*/g, type: 'strong' },  // Then bold
+      { regex: /\*[^*]+?\*/g, type: 'em' }   // Then italic
+    ];
 
-  // Convert @...@ to custom markdown for characters
-  text = text.replace(/@([^@]+?)@/g, '`char:$1`');
+    let matches = [];
+    patterns.forEach(({ regex, type }) => {
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        matches.push({
+          text: match[0],
+          start: match.index,
+          end: match.index + match[0].length,
+          type
+        });
+      }
+    });
 
-  // Convert "..." to custom markdown for dialogue
-  text = text.replace(/"([^"]+?)"/g, '`dial:$1`');
+    // Sort matches by start position and length (longer matches first for same position)
+    return matches.sort((a, b) => {
+      if (a.start === b.start) {
+        return b.end - a.end; // Longer matches first
+      }
+      return a.start - b.start;
+    });
+  };
 
-  return text;
+  // Process the text with non-overlapping matches
+  const matches = findMatches(text);
+  let result = '';
+  let currentPos = 0;
+
+  // Helper to convert match to markdown
+  const convertToMarkdown = (match) => {
+    const content = match.text.slice(1, -1).trim();
+    switch (match.type) {
+      case 'char':
+        return '`char:' + content + '`';
+      case 'loc':
+        return '`loc:' + content + '`';
+      case 'dial':
+        return '`dial:' + content + '`';
+      case 'strong':
+        return '**' + content + '**';
+      case 'em':
+        return '*' + content + '*';
+      default:
+        return match.text;
+    }
+  };
+
+  // Process matches in order
+  matches.forEach(match => {
+    // Add any text before this match
+    if (match.start > currentPos) {
+      result += escapeHTML(text.slice(currentPos, match.start));
+    }
+
+    // Add the converted match
+    result += convertToMarkdown(match);
+    currentPos = match.end;
+  });
+
+  // Add any remaining text
+  if (currentPos < text.length) {
+    result += escapeHTML(text.slice(currentPos));
+  }
+
+  return result;
 };
 
 // Custom components for ReactMarkdown
 const customComponents = {
-  // Text styling components
-  strong: ({ children }) => (
-    <span className="text-cyan-300 font-medieval px-2 py-0.5 rounded glow-cyan">
+  strong: ({ children, ...props }) => (
+    <span className="text-cyan-300 font-medieval px-2 py-0.5 rounded glow-cyan" {...props}>
       {children}
     </span>
   ),
-  em: ({ children }) => (
-    <span className="text-amber-200/90 italic px-2 py-0.5 rounded glow-amber">
+  em: ({ children, ...props }) => (
+    <span className="text-amber-200/90 px-2 py-0.5 rounded" {...props}>
       {children}
     </span>
   ),
-  code: ({ children }) => {
+  code: ({ children, ...props }) => {
     const text = children.toString();
-    if (text.startsWith('loc:')) {
-      const location = text.slice(4).trim();
-      return (
-        <span className="text-emerald-400 font-medieval px-2 py-0.5 rounded-md inline-flex items-center bg-emerald-950/40 border border-emerald-700/30 glow-emerald">
-          {location}
+
+    // Special formatting handlers with priority
+    const formatters = {
+      'char:': (content) => (
+        <span className="text-violet-300 font-medieval px-2 py-0.5 rounded-md inline-flex items-center bg-violet-950/40 border border-violet-700/30">
+          {content}
         </span>
-      );
-    }
-    if (text.startsWith('char:')) {
-      const character = text.slice(5).trim();
-      return (
-        <span className="text-violet-300 font-medieval px-2 py-0.5 rounded-md inline-flex items-center bg-violet-950/40 border border-violet-700/30 glow-violet">
-          {character}
+      ),
+      'loc:': (content) => (
+        <span className="text-emerald-400 font-medieval px-2 py-0.5 rounded-md inline-flex items-center bg-emerald-950/40 border border-emerald-700/30">
+          {content}
         </span>
-      );
-    }
-    if (text.startsWith('dial:')) {
-      const dialogue = text.slice(5).trim();
-      return (
-        <span className="text-yellow-200/90 px-2 py-0.5 rounded inline-block italic">
-          {dialogue}
+      ),
+      'dial:': (content) => (
+        <span className="text-yellow-200/90 px-2 py-0.5 rounded inline-block italic glow-amber">
+          {content}
         </span>
-      );
+      )
+    };
+
+    // Check for special formatting with priority handling
+    for (const [prefix, formatter] of Object.entries(formatters)) {
+      if (text.startsWith(prefix)) {
+        const content = text.slice(prefix.length).trim();
+        // Process any remaining markdown in the content
+        return formatter(content);
+      }
     }
-    return <DiceRollCode content={text} />;
+
+    // Default to dice roll code if no special formatting
+    return <DiceRollCode content={text} {...props} />;
   },
-  p: ({ children }) => (
-    <div className="mb-3 last:mb-0 leading-relaxed">{children}</div>
+  p: ({ children, ...props }) => (
+    <div className="mb-3 last:mb-0 leading-relaxed" {...props}>
+      {children}
+    </div>
   ),
-  pre: ({ children }) => <pre className="bg-transparent p-0">{children}</pre>,
+  pre: ({ children, ...props }) => (
+    <pre className="bg-transparent p-0" {...props}>
+      {children}
+    </pre>
+  ),
 };
 
 // Component for GM badge

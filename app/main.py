@@ -21,7 +21,7 @@ from app.ai_models import AIModelFactory
 load_dotenv()
 
 # Initialize AI model
-ai_model = AIModelFactory.create_model("deepseek")
+ai_model = AIModelFactory.create_model(os.getenv('AI_MODEL', 'deepseek'))
 
 # Get the current directory
 BASE_DIR = Path(__file__).resolve().parent

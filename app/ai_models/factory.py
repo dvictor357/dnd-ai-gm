@@ -1,23 +1,25 @@
 from typing import Optional, Dict
 from .base import AIModel
 from .deepseek_model import DeepSeekModel
+from .openrouter_model import OpenRouterModel
 
 class AIModelFactory:
     _models: Dict[str, type] = {
         "deepseek": DeepSeekModel,
+        "openrouter": OpenRouterModel,
         # Add more models here as they become available
-        # "openai": OpenAIModel,
         # "anthropic": AnthropicModel,
     }
 
     @classmethod
-    def create_model(cls, model_name: str, api_key: Optional[str] = None) -> AIModel:
+    def create_model(cls, model_name: str, api_key: Optional[str] = None, model_options: Optional[Dict] = None) -> AIModel:
         """
         Create an instance of the specified AI model.
         
         Args:
             model_name: Name of the model to create
             api_key: Optional API key for the model
+            model_options: Optional additional configuration for the model
             
         Returns:
             AIModel: An instance of the specified model
@@ -29,6 +31,8 @@ class AIModelFactory:
         if not model_class:
             raise ValueError(f"Unsupported model: {model_name}. Available models: {list(cls._models.keys())}")
         
+        if model_options:
+            return model_class(api_key=api_key, **model_options)
         return model_class(api_key=api_key)
 
     @classmethod

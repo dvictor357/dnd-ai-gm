@@ -1,5 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, List
 import json
 import os
@@ -16,6 +17,8 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from app.ai_models import AIModelFactory
+from app.dependencies import get_db
+from app.api import users, game_rooms
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +29,7 @@ ai_model = AIModelFactory.create_model(os.getenv('AI_MODEL', 'deepseek'))
 # Get the current directory
 BASE_DIR = Path(__file__).resolve().parent
 
-app = FastAPI()
+app = FastAPI(title="D&D AI Game Backend")
 
 # Add CORS middleware
 app.add_middleware(
@@ -36,6 +39,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(users.router)
+app.include_router(game_rooms.router)
 
 class ConnectionManager:
     def __init__(self):

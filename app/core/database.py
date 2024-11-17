@@ -20,7 +20,7 @@ engine = create_async_engine(
     echo=True  # Set to False in production
 )
 
-AsyncSessionLocal = sessionmaker(
+async_session_maker = sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False
@@ -28,9 +28,10 @@ AsyncSessionLocal = sessionmaker(
 
 Base = declarative_base()
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+# Note: This function is now moved to dependencies.py
+# async def get_db():
+#     async with async_session_maker() as session:
+#         try:
+#             yield session
+#         finally:
+#             await session.close()

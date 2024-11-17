@@ -3,6 +3,7 @@ import useGameStore from './store/gameStore';
 import CharacterForm from './components/CharacterCreation/CharacterForm';
 import ChatWindow from './components/Chat/ChatWindow';
 import StatsPanel from './components/GameStats/StatsPanel';
+import ServerStatus from './components/ServerStatus';
 
 function App() {
   const { initializeWebSocket } = useGameStore();
@@ -46,6 +47,7 @@ function App() {
           )}
         </div>
       </div>
+      <ServerStatus />
     </div>
   );
 }

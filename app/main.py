@@ -215,6 +215,28 @@ Consider these stats when suggesting ability checks, saving throws, and determin
 async def get():
     return {"status": "ok", "message": "D&D AI Game Master API is running"}
 
+@app.get("/server-info")
+async def get_server_info():
+    # Get server start time from a global variable or environment
+    start_time = getattr(app.state, 'start_time', datetime.now())
+    if not hasattr(app.state, 'start_time'):
+        app.state.start_time = start_time
+
+    # Calculate uptime
+    uptime = datetime.now() - start_time
+    hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{hours}h {minutes}m {seconds}s"
+
+    return {
+        "status": "online",
+        "version": "1.0.0",
+        "uptime": uptime_str,
+        "active_players": len(manager.active_connections),
+        "total_encounters": manager.game_state["encounters"],
+        "total_rolls": manager.game_state["rolls"]
+    }
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()

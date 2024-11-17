@@ -11,8 +11,17 @@ from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime
 
+# Add project root to Python path
+import sys
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from app.ai_models import AIModelFactory
+
 # Load environment variables
 load_dotenv()
+
+# Initialize AI model
+ai_model = AIModelFactory.create_model("deepseek")
 
 # Get the current directory
 BASE_DIR = Path(__file__).resolve().parent
@@ -81,14 +90,6 @@ def wrap_dice_rolls(text):
     return re.sub(pattern, r'`[\1]`', text)
 
 async def get_ai_response(message: str, character: dict = None, conversation_history: list = None) -> str:
-    api_key = os.getenv('DEEPSEEK_API_KEY')
-    if not api_key:
-        raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
-
-    # Truncate conversation history to last 10 messages to prevent context overflow
-    if conversation_history:
-        conversation_history = conversation_history[-10:]
-
     system_prompt = """You are an AI Dungeon Master for a D&D 5e game. Guide players through their adventure while following these strict formatting guidelines:
 
 1. **Message Structure**:
@@ -130,86 +131,17 @@ async def get_ai_response(message: str, character: dict = None, conversation_his
 
 Remember: Every location must use #tags#, every character must use @tags@, all dialogue must use "quotes", and all dice rolls must use `[brackets]`. These formatting rules are crucial for proper message display in the interface."""
 
-    # Create character context if character info is provided
-    character_context = ""
-    if character:
-        stats_info = character.get('stats', {})
-        modifiers = {
-            stat: (value - 10) // 2
-            for stat, value in stats_info.items()
-        }
-        
-        character_context = f"""
-You are interacting with {character['name']}, a {character['race']} {character['class']} with a {character['background']} background.
-
-Character Stats:
-- Strength: {stats_info.get('strength', 10)} (modifier: {modifiers.get('strength', 0)})
-- Dexterity: {stats_info.get('dexterity', 10)} (modifier: {modifiers.get('dexterity', 0)})
-- Constitution: {stats_info.get('constitution', 10)} (modifier: {modifiers.get('constitution', 0)})
-- Intelligence: {stats_info.get('intelligence', 10)} (modifier: {modifiers.get('intelligence', 0)})
-- Wisdom: {stats_info.get('wisdom', 10)} (modifier: {modifiers.get('wisdom', 0)})
-- Charisma: {stats_info.get('charisma', 10)} (modifier: {modifiers.get('charisma', 0)})
-
-Consider these stats when suggesting ability checks, saving throws, and determining the success of actions. Address the character by name and consider their racial traits, class abilities, and background story elements in your responses."""
-
-    # Prepare conversation history
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "system", "content": character_context} if character else None,
-    ]
-
-    # Add conversation history if available
-    if conversation_history:
-        for hist in conversation_history:
-            if hist["type"] == "action":
-                messages.append({"role": "user", "content": hist["content"]})
-            elif hist["type"] == "gm_response":
-                messages.append({"role": "assistant", "content": hist["content"]})
-
-    # Add current message
-    messages.append({"role": "user", "content": message})
-    
-    # Remove None messages
-    messages = [msg for msg in messages if msg is not None]
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-
     try:
-        timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(
-                "https://api.deepseek.com/v1/chat/completions",
-                json={
-                    "model": "deepseek-chat",
-                    "messages": messages,
-                    "temperature": 0.7,
-                    "max_tokens": 800,
-                    "stop": None
-                },
-                headers=headers
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logging.error(f"API request failed with status {response.status}: {error_text}")
-                    return "I apologize, but I'm having trouble processing your request at the moment. Please try again."
-                
-                try:
-                    response_json = await response.json()
-                    response_text = response_json['choices'][0]['message']['content']
-                    return wrap_dice_rolls(response_text)
-                except (KeyError, json.JSONDecodeError) as e:
-                    logging.error(f"Error parsing API response: {str(e)}")
-                    return "I encountered an error while processing the response. Please try again."
-                
-    except asyncio.TimeoutError:
-        logging.error("API request timed out")
-        return "I apologize, but the response is taking longer than expected. Please try a shorter or simpler action."
+        response = await ai_model.generate_response(
+            message=message,
+            system_prompt=system_prompt,
+            character=character,
+            conversation_history=conversation_history
+        )
+        return wrap_dice_rolls(response)
     except Exception as e:
-        logging.error(f"Unexpected error in get_ai_response: {str(e)}")
-        return "An unexpected error occurred. Please try again."
+        logging.error(f"Error in get_ai_response: {str(e)}")
+        return "I apologize, but I'm having trouble processing your request at the moment. Please try again."
 
 @app.get("/")
 async def get():

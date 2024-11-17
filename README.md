@@ -5,7 +5,9 @@ An interactive multiplayer Dungeons & Dragons game with an AI-powered Game Maste
 ## Features
 
 - Real-time multiplayer interaction via WebSocket
-- AI Game Master powered by DeepSeek
+- Flexible AI Game Master with support for multiple models:
+  - DeepSeek
+  - OpenRouter (supporting various models like Claude-2, GPT-4, etc.)
 - Character creation and management
 - Interactive chat with dice rolling system
 - Dynamic dice roll tracking and stats
@@ -16,7 +18,8 @@ An interactive multiplayer Dungeons & Dragons game with an AI-powered Game Maste
 ```
 dnd-ai-master/
 ├── app/                # FastAPI Backend
-│   └── main.py        # WebSocket server and AI integration
+│   ├── main.py        # WebSocket server and core logic
+│   └── ai_models/     # AI model implementations
 ├── frontend/          # React Frontend
 │   ├── src/
 │   │   ├── components/  # React components
@@ -24,7 +27,7 @@ dnd-ai-master/
 │   ├── package.json
 │   └── vite.config.js
 ├── requirements.txt   # Python dependencies
-└── .env              # Environment variables
+└── .env.example      # Environment variables template
 ```
 
 ## Setup
@@ -39,9 +42,20 @@ dnd-ai-master/
    ```bash
    pip install -r requirements.txt
    ```
-3. Create a `.env` file in the project root:
+3. Copy `.env.example` to `.env` and configure your environment:
+   ```bash
+   cp .env.example .env
    ```
-   DEEPSEEK_API_KEY=your_api_key_here
+4. Configure your AI model in `.env`:
+   ```
+   # For DeepSeek:
+   AI_MODEL=deepseek
+   DEEPSEEK_API_KEY=your_deepseek_api_key_here
+
+   # For OpenRouter:
+   AI_MODEL=openrouter
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   OPENROUTER_MODEL=your_preferred_model  # e.g., anthropic/claude-2
    ```
 
 ### Frontend Setup
@@ -75,11 +89,35 @@ dnd-ai-master/
 4. The AI Game Master will respond to your actions and guide the story
 5. Track your progress with the encounter and roll counters
 
+## AI Model Configuration
+
+The game supports multiple AI models through different providers:
+
+### DeepSeek
+- Default model for general use
+- Requires a DeepSeek API key
+
+### OpenRouter
+- Provides access to various AI models:
+  - Claude-2 by Anthropic
+  - GPT-4 by OpenAI
+  - PaLM 2 by Google
+  - And many more
+- Requires an OpenRouter API key
+- Configurable model selection via `OPENROUTER_MODEL` environment variable
+
+To switch between models, update the `AI_MODEL` variable in your `.env` file:
+```bash
+AI_MODEL=deepseek  # For DeepSeek
+# or
+AI_MODEL=openrouter  # For OpenRouter
+```
+
 ## Requirements
 
 - Python 3.8+
 - Node.js 16+
-- DeepSeek API key
+- API key for your chosen AI provider (DeepSeek or OpenRouter)
 - Modern web browser
 
 ## Development
@@ -87,7 +125,7 @@ dnd-ai-master/
 - Backend: FastAPI with WebSocket for real-time communication
 - Frontend: React 18 with Vite and Tailwind CSS
 - State Management: Zustand
-- AI Integration: DeepSeek Chat API
+- AI Integration: Modular system supporting multiple AI providers
 
 ## Contributing
 

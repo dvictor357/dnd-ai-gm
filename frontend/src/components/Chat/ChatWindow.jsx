@@ -14,10 +14,10 @@ const ChatWindow = () => {
     isCharacterCreated,
     chatInput,
     setChatInput,
-    endGame
+    endGame,
+    isGMTyping
   } = useGameStore();
 
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -44,7 +44,7 @@ const ChatWindow = () => {
     const handleMessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'gm_response') {
-        setIsLoading(false);
+        // Removed setIsLoading(false) here
       }
     };
 
@@ -56,7 +56,7 @@ const ChatWindow = () => {
     e.preventDefault();
     if (!chatInput.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    setIsLoading(true);
+    // Removed setIsLoading(true) here
 
     // Add player message
     addMessage({
@@ -113,27 +113,34 @@ const ChatWindow = () => {
             actions={message.type === 'gm_response' ? message.actions : null}
           />
         ))}
-        {isLoading && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
         <div className="flex space-x-4">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            disabled={!isCharacterCreated || isLoading}
-            placeholder={isCharacterCreated ? (isLoading ? "Game Master is thinking..." : "What would you like to do?") : "Create your character to begin..."}
-            className={`flex-1 bg-gray-700 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500 ${isLoading ? 'animate-pulse' : ''}`}
-          />
-          <button
-            type="submit"
-            disabled={!isCharacterCreated || isLoading || !chatInput.trim()}
-            className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'animate-pulse' : ''}`}
-          >
-            <PaperAirplaneIcon className="w-5 h-5" />
-          </button>
+          {isGMTyping ? (
+            <div className="flex-1 bg-gray-800/50 border border-primary-500/20 rounded-lg py-3">
+              <TypingIndicator />
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                disabled={!isCharacterCreated}
+                placeholder={isCharacterCreated ? "What would you like to do?" : "Create your character to begin..."}
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500"
+              />
+              <button
+                type="submit"
+                disabled={!isCharacterCreated || !chatInput.trim()}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <PaperAirplaneIcon className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </form>
     </div>

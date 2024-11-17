@@ -27,6 +27,7 @@ const initialState = {
     encounterCount: 0,
     rollCount: 0,
   },
+  isGMTyping: false,
 };
 
 const useGameStore = create(
@@ -108,6 +109,8 @@ const useGameStore = create(
               encounterCount: data.encounters,
               rollCount: data.rolls
             });
+          } else if (data.type === 'gm_typing') {
+            set({ isGMTyping: data.is_typing });
           }
         };
 
@@ -193,7 +196,8 @@ const useGameStore = create(
         messages: state.messages,
         isCharacterCreated: state.isCharacterCreated,
         character: state.character,
-        gameStats: state.gameStats
+        gameStats: state.gameStats,
+        isGMTyping: state.isGMTyping
       })
     }
   )

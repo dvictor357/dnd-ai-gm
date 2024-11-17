@@ -54,13 +54,25 @@ class ConnectionManager:
         }
         self.game_state["conversations"][player_id] = []
 
-    def disconnect(self, player_id: str):
+    async def disconnect(self, player_id: str):
         if player_id in self.active_connections:
             del self.active_connections[player_id]
         if player_id in self.game_state["players"]:
             del self.game_state["players"][player_id]
         if player_id in self.game_state["conversations"]:
             del self.game_state["conversations"][player_id]
+
+    async def broadcast_typing_status(self, is_typing: bool):
+        """Broadcast GM typing status to all connected clients."""
+        message = {
+            "type": "gm_typing",
+            "is_typing": is_typing
+        }
+        for connection in self.active_connections.values():
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logging.error(f"Error broadcasting typing status: {str(e)}")
 
     def add_to_conversation(self, player_id: str, message: dict):
         if player_id not in self.game_state["conversations"]:
@@ -132,14 +144,23 @@ async def get_ai_response(message: str, character: dict = None, conversation_his
 Remember: Every location must use #tags#, every character must use @tags@, all dialogue must use "quotes", and all dice rolls must use `[brackets]`. These formatting rules are crucial for proper message display in the interface."""
 
     try:
+        # Notify all clients that GM is typing
+        await manager.broadcast_typing_status(True)
+        
         response = await ai_model.generate_response(
             message=message,
             system_prompt=system_prompt,
             character=character,
             conversation_history=conversation_history
         )
+        
+        # Notify all clients that GM has finished typing
+        await manager.broadcast_typing_status(False)
+        
         return wrap_dice_rolls(response)
     except Exception as e:
+        # Make sure to turn off typing status even if there's an error
+        await manager.broadcast_typing_status(False)
         logging.error(f"Error in get_ai_response: {str(e)}")
         return "I apologize, but I'm having trouble processing your request at the moment. Please try again."
 
@@ -166,8 +187,11 @@ async def get_server_info():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await websocket.accept()  # Accept the connection here
+    
     try:
+        player_id = None
+        char_name = None
         while True:
             data = await websocket.receive_json()
             
@@ -226,7 +250,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
             
             elif data["type"] == "action":
-                player_id = None
                 # Find player ID based on character data
                 if "character" in data:
                     char_name = data["character"]["name"]
@@ -287,7 +310,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     if player_id:
                         # Clean up player data
-                        manager.disconnect(player_id)
+                        await manager.disconnect(player_id)
                         
                         # Send confirmation message
                         await websocket.send_json({
@@ -307,7 +330,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # Find and clean up disconnected player's data
         for pid, ws in manager.active_connections.items():
             if ws == websocket:
-                manager.disconnect(pid)
+                await manager.disconnect(pid)
                 break
     except Exception as e:
         # Log the error and send error message to client

@@ -1,14 +1,15 @@
 import React from 'react';
+import { SparklesIcon } from '@heroicons/react/24/solid';
 
 const TypingIndicator = () => {
   return (
-    <div className="flex items-center space-x-2 p-4">
-      <div className="flex space-x-1">
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+    <div className="flex items-center space-x-3 px-2">
+      <div className="relative">
+        <SparklesIcon className="w-5 h-5 text-primary-400 animate-pulse" />
       </div>
-      <span className="text-gray-400 text-sm">Game Master is typing...</span>
+      <span className="text-primary-300 text-sm font-medium italic">
+        The Game Master weaves the next part of your tale...
+      </span>
     </div>
   );
 };

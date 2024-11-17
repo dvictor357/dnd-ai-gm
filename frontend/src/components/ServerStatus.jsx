@@ -7,8 +7,10 @@ const ServerStatus = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [serverInfo, setServerInfo] = useState({
     status: 'checking',
-    version: '',
-    uptime: ''
+    activeConnections: 0,
+    encounters: 0,
+    rolls: 0,
+    model: { type: '', name: '' }
   });
 
   useEffect(() => {
@@ -18,15 +20,19 @@ const ServerStatus = () => {
         const response = await fetch(`http://${wsHost}/server-info`);
         const data = await response.json();
         setServerInfo({
-          status: 'online',
-          version: data.version,
-          uptime: data.uptime
+          status: data.status,
+          activeConnections: data.activeConnections,
+          encounters: data.encounters,
+          rolls: data.rolls,
+          model: data.model
         });
       } catch (error) {
         setServerInfo({
           status: 'offline',
-          version: '',
-          uptime: ''
+          activeConnections: 0,
+          encounters: 0,
+          rolls: 0,
+          model: { type: '', name: '' }
         });
       }
     };
@@ -54,7 +60,7 @@ const ServerStatus = () => {
         <div className="flex items-center space-x-2">
           <div 
             className={`w-2 h-2 rounded-full ${
-              isConnected && serverInfo.status === 'online' 
+              isConnected && serverInfo.status === 'ok' 
                 ? 'bg-green-500' 
                 : 'bg-red-500'
             }`}
@@ -81,33 +87,32 @@ const ServerStatus = () => {
           <div className="flex items-center space-x-2">
             <span>Server:</span>
             <span className={
-              serverInfo.status === 'online' ? 'text-green-400' : 
+              serverInfo.status === 'ok' ? 'text-green-400' : 
               serverInfo.status === 'checking' ? 'text-yellow-400' : 'text-red-400'
             }>
               {serverInfo.status}
             </span>
           </div>
 
-          {serverInfo.status === 'online' && (
+          {serverInfo.status === 'ok' && (
             <>
               <div className="text-gray-400">
-                <span className="text-gray-500">Version:</span> {serverInfo.version}
+                <span className="text-gray-500">Players:</span> {serverInfo.activeConnections}
               </div>
               <div className="text-gray-400">
-                <span className="text-gray-500">Uptime:</span> {serverInfo.uptime}
+                <span className="text-gray-500">Encounters:</span> {serverInfo.encounters}
+              </div>
+              <div className="text-gray-400">
+                <span className="text-gray-500">Rolls:</span> {serverInfo.rolls}
+              </div>
+              <div className="text-gray-400">
+                <span className="text-gray-500">AI Model:</span>{' '}
+                {serverInfo.model.type} ({serverInfo.model.name})
               </div>
             </>
           )}
 
           <div className="border-t border-gray-700 pt-2 mt-2 space-y-1">
-            <div className="text-gray-400 flex justify-between">
-              <span className="text-gray-500">Players:</span>
-              <span>{gameStats.playerCount}</span>
-            </div>
-            <div className="text-gray-400 flex justify-between">
-              <span className="text-gray-500">Encounters:</span>
-              <span>{gameStats.encounterCount}</span>
-            </div>
             <div className="text-gray-400 flex justify-between">
               <span className="text-gray-500">Dice Rolls:</span>
               <span>{gameStats.rollCount}</span>

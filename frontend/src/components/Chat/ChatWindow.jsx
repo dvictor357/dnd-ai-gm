@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import useGameStore from '../../store/gameStore';
 import ChatMessage from './ChatMessage';
+import TypingIndicator from './TypingIndicator';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
 
@@ -106,22 +107,13 @@ const ChatWindow = () => {
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-12rem)] min-h-[400px]">
         {messages.map((message, index) => (
-          <ChatMessage key={index} message={message} />
+          <ChatMessage
+            key={index}
+            message={message}
+            actions={message.type === 'gm_response' ? message.actions : null}
+          />
         ))}
-        {isLoading && (
-          <div className="flex items-center space-x-2 text-gray-400 animate-pulse">
-            <div className="w-6 h-6">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            </div>
-            <div className="w-6 h-6">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            </div>
-            <div className="w-6 h-6">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-            <span>Game Master is thinking...</span>
-          </div>
-        )}
+        {isLoading && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
 

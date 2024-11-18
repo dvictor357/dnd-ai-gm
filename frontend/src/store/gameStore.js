@@ -75,30 +75,18 @@ const useGameStore = create(
         socket.on('connect', () => {
           console.log('WebSocket connection established with ID:', socket.id);
           set({ isConnected: true, ws: socket });
-          get().addMessage({
-            type: 'system',
-            content: '🟢 Connected to server',
-            timestamp: new Date().toISOString(),
-          });
         });
 
         socket.on('disconnect', (reason) => {
           console.log('WebSocket connection closed:', reason, 'Socket ID:', socket.id);
           set({ isConnected: false });
-          get().addMessage({
-            type: 'system',
-            content: `🔴 Disconnected from server: ${reason}`,
-            timestamp: new Date().toISOString(),
-          });
+          // Removed disconnect message since we have ServerStatus indicator
         });
 
         socket.on('connect_error', (error) => {
           console.error('WebSocket error:', error, 'Socket ID:', socket.id);
-          get().addMessage({
-            type: 'error',
-            content: `❌ Connection error: ${error.message}`,
-            timestamp: new Date().toISOString(),
-          });
+          // Only log connection errors to console, ServerStatus will show the state
+          console.error(`Connection error: ${error.message}`);
         });
 
         socket.on('message', (data) => {
@@ -108,6 +96,11 @@ const useGameStore = create(
           } catch (error) {
             console.error('Error handling message:', error);
           }
+        });
+
+        socket.on('typing_status', (status) => {
+          console.log('Typing status:', status);
+          set({ isGMTyping: status.isTyping });
         });
 
         set({ ws: socket });

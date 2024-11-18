@@ -19,6 +19,7 @@ const ChatWindow = () => {
   } = useGameStore();
 
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -104,13 +105,9 @@ const ChatWindow = () => {
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-12rem)] min-h-[400px]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-12rem)] min-h-[400px]" ref={messagesContainerRef}>
         {messages.map((message, index) => (
-          <ChatMessage
-            key={index}
-            message={message}
-            actions={message.type === 'gm_response' ? message.actions : null}
-          />
+          <ChatMessage key={index} message={message} />
         ))}
         <div ref={messagesEndRef} />
       </div>

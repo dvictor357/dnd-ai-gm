@@ -54,47 +54,37 @@ export class CharacterUtils {
    * @returns Formatted character context string
    */
   static createCharacterContext(character: Character): string {
-    const { name, race, class: charClass, background, stats = {}, traits = [], abilities = [], equipment = [] } = character;
+    const { name, race, class: charClass, background, stats = {} } = character;
     
-    let context = `You are interacting with ${name}, a ${race} ${charClass} with a ${background} background.\n\n`;
+    let context = `You are weaving an epic tale centered around ${name}, a ${race} ${charClass} whose ${background} background colors their view of the world. This character's journey should be rich with opportunities that highlight their unique nature and skills.
+
+Character Essence:
+- A ${race} ${charClass}: Let their heritage and training influence how they experience the world
+- ${background} Background: Their past experiences shape how others react to them
+- Unique Perspective: Blend their race, class, and background into a distinctive narrative voice\n\n`;
     
-    // Add stats if available
+    // Add stats with modifiers
     if (Object.keys(stats).length > 0) {
-      context += 'Character Stats:\n';
+      context += 'Character Stats (Consider these for both mechanics and narrative):\n';
       context += this.formatStats(stats);
       context += '\n\n';
     }
 
-    // Add traits if available
-    if (traits.length > 0) {
-      context += 'Racial/Character Traits:\n';
-      context += traits.map(trait => `- ${trait}`).join('\n');
-      context += '\n\n';
-    }
+    // Add rich storytelling guidance
+    context += `Narrative Integration:
+- Draw on ${race} cultural elements in descriptions (how they see, feel, and interpret things)
+- Weave ${charClass} training into action scenes and environmental observations
+- Use their ${background} background to create unique social interactions and knowledge
+- Let their stats influence the style and flair of their successes and failures
+- Create situations where their unique combination of traits leads to special insights or opportunities
 
-    // Add class abilities if available
-    if (abilities.length > 0) {
-      context += 'Class Abilities:\n';
-      context += abilities.map(ability => `- ${ability}`).join('\n');
-      context += '\n\n';
-    }
+Story Themes:
+- Explore themes that resonate with their background as a ${background}
+- Present challenges that play to their ${charClass} abilities
+- Include cultural elements that connect to their ${race} heritage
+- Create moments where their particular combination of traits offers unique solutions
 
-    // Add equipment if available
-    if (equipment.length > 0) {
-      context += 'Equipment:\n';
-      context += equipment.map(item => `- ${item}`).join('\n');
-      context += '\n\n';
-    }
-
-    // Add guidance for the AI
-    context += `
-Important Guidelines:
-- Address the character as "${name}"
-- Consider racial traits and abilities when determining action outcomes
-- Use appropriate ability checks based on the character's stats
-- Consider class abilities and background elements in responses
-- Maintain consistency with D&D 5e rules
-- Provide immersive and engaging responses that fit the character's background`;
+Remember: Every scene should feel personal to ${name}, with their unique characteristics influencing how they perceive and interact with the world around them.`;
 
     return context;
   }

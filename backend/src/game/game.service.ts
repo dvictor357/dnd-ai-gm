@@ -176,7 +176,7 @@ export class GameService {
           }
 
           // Generate narrative response using unified prompt
-          const narrativeResponse = await this.generateResponse(character, message.content, {
+          const narrativeResponse = await this.generateResponse(playerId, character, message.content, {
             isRollResponse: true,
             rollDetails: {
               action: message.content.split('[')[0],
@@ -201,7 +201,7 @@ export class GameService {
       }
 
       // For non-roll actions, use the same unified prompt system
-      return await this.generateResponse(character, message.content);
+      return await this.generateResponse(playerId, character, message.content);
     } catch (error) {
       console.error('Error handling message:', error);
       throw error;
@@ -209,6 +209,7 @@ export class GameService {
   }
 
   private async generateResponse(
+    playerId: string,
     character: Character,
     action: string,
     rollInfo?: {
@@ -222,8 +223,15 @@ export class GameService {
         dc: number | null;
         isSuccess: boolean | null;
       };
-    }
+    },
   ): Promise<string> {
+    // Get recent conversation history
+    const recentMessages = this.gameStateService.getState().conversations[playerId] || [];
+    const lastMessages = recentMessages.slice(-5).map(msg => ({
+      role: msg.type === 'player' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+
     const prompt = `
       As a Dungeon Master, ${rollInfo?.isRollResponse ? 'narrate the outcome of this roll' : 'respond to this player action'} in the context of D&D 5e:
 
@@ -247,6 +255,9 @@ export class GameService {
       
       SKILLS & PROFICIENCIES:
       Proficiency Bonus: +${Math.ceil((character.level || 1) / 4) + 1}
+
+      RECENT CONVERSATION:
+      ${lastMessages.map(msg => `${msg.role === 'user' ? 'Player' : 'DM'}: ${msg.content}`).join('\n')}
 
       ${rollInfo?.isRollResponse ? `
       ROLL CONTEXT:
@@ -282,6 +293,8 @@ export class GameService {
       - Keep responses focused and engaging
       - Create anticipation for what comes next
       - Make each action feel meaningful
+      - Maintain continuity with recent conversation
+      - Reference previous actions when relevant
 
       Aim for 2-4 sentences that combine ${rollInfo?.isRollResponse ? 'the mechanical outcome' : 'game mechanics'} with rich narrative description.
     `;
@@ -289,6 +302,14 @@ export class GameService {
     await this.broadcastTypingStatus(true);
     const response = await this.aiService.getResponse(prompt);
     await this.broadcastTypingStatus(false);
+
+    // Store the response in conversation history
+    await this.gameStateService.addMessage(playerId, {
+      content: response,
+      type: 'gm',
+      timestamp: new Date().toISOString()
+    });
+
     return response;
   }
 

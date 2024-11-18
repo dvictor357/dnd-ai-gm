@@ -42,16 +42,12 @@ const ChatWindow = () => {
   useEffect(() => {
     if (!ws) return;
 
-    const handleMessage = (message) => {
-      if (message.type === 'gm_response') {
-        // Handle GM response
-        addMessage(message);
-      }
+    // Removed duplicate message handling since it's already handled in gameStore
+    
+    return () => {
+      // Cleanup
     };
-
-    ws.on('message', handleMessage);
-    return () => ws.off('message', handleMessage);
-  }, [ws, addMessage]);
+  }, [ws]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -143,14 +143,6 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
         playerId = client.id; // Use socket ID as temporary player ID
         await this.gameService.connect(client, playerId);
         await this.gameService.setCharacter(playerId, message.character);
-        
-        // Send welcome message
-        const welcomeMessage = await this.gameService.generateWelcomeMessage(message.character);
-        client.emit('message', {
-          type: 'system',
-          content: welcomeMessage,
-          timestamp: new Date().toISOString()
-        });
       }
 
       if (!playerId) {

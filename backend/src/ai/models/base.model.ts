@@ -1,4 +1,4 @@
-import { Character } from '../utils/character.utils';
+import { Character, CharacterUtils } from '../utils/character.utils';
 
 export interface AIModelResponse {
   response: string;
@@ -50,13 +50,21 @@ export abstract class BaseAIModel {
    * @returns Array of system messages
    */
   protected createSystemMessages(character?: Character): ConversationMessage[] {
-    const messages: ConversationMessage[] = [
-      {
-        role: 'system',
-        content: 'You are a helpful D&D game master assistant. Provide immersive and engaging responses that follow D&D 5e rules.',
-      },
-    ];
+    const messages: ConversationMessage[] = [];
 
+    // Add base D&D context
+    messages.push({
+      role: 'system',
+      content: `You are an AI Dungeon Master for D&D 5e. Your responses should be:
+- In character as a DM
+- Follow D&D 5e rules
+- Be descriptive and engaging
+- Consider character abilities and stats
+- Use appropriate skill checks
+- Be consistent with fantasy setting`,
+    });
+
+    // Add character-specific context if available
     if (character) {
       messages.push({
         role: 'system',
@@ -68,12 +76,14 @@ export abstract class BaseAIModel {
   }
 
   /**
-   * Format conversation history
-   * @param history Array of conversation messages
-   * @returns Formatted conversation messages
+   * Format conversation history for the AI
+   * @param history Array of previous messages
+   * @returns Formatted conversation history
    */
-  protected formatConversationHistory(history: ConversationMessage[]): ConversationMessage[] {
-    return history.map(msg => ({
+  protected formatConversationHistory(
+    history: ConversationMessage[],
+  ): ConversationMessage[] {
+    return history.map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));

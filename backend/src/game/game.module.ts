@@ -1,10 +1,26 @@
 import { Module } from '@nestjs/common';
-import { GameGateway } from './game.gateway';
+import { ConfigModule } from '@nestjs/config';
 import { GameService } from './game.service';
+import { GameGateway } from './game.gateway';
 import { AIModule } from '../ai/ai.module';
+import { DiceService } from './services/dice/dice.service';
+import { GameStateService } from './services/state/game-state.service';
+import { CharacterService } from './services/character/character.service';
+import { EncounterService } from './services/encounter/encounter.service';
 
 @Module({
-  imports: [AIModule],
-  providers: [GameGateway, GameService],
+  imports: [
+    ConfigModule.forRoot(),
+    AIModule,
+  ],
+  providers: [
+    GameService,
+    GameGateway,
+    DiceService,
+    GameStateService,
+    CharacterService,
+    EncounterService,
+  ],
+  exports: [GameService],
 })
 export class GameModule {}

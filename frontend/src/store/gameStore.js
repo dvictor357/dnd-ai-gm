@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { io } from 'socket.io-client';
 
 const initialState = {
   ws: null,
@@ -38,83 +39,78 @@ const useGameStore = create(
       // Actions
       initializeWebSocket: () => {
         const { ws } = get();
-        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        if (ws && ws.connected) {
+          console.log('WebSocket already connected, skipping initialization');
           return;
         }
 
-        const wsHost = import.meta.env.VITE_WS_HOST;
-        const websocket = new WebSocket(`ws://${wsHost}/ws`);
+        if (ws) {
+          console.log('Cleaning up existing socket connection');
+          ws.disconnect();
+          set({ ws: null, isConnected: false });
+        }
 
-        websocket.onopen = () => {
-          set({ isConnected: true });
+        const wsHost = import.meta.env.VITE_WS_HOST;
+        console.log('Initializing WebSocket connection to:', wsHost);
+        
+        const socket = io(`http://${wsHost}`, {
+          path: '/ws',
+          transports: ['websocket'],
+          reconnection: true,
+          reconnectionDelay: 5000,
+          reconnectionAttempts: Infinity,
+          timeout: 45000,
+          forceNew: true,
+        });
+
+        socket.io.on("error", (error) => {
+          console.error('Transport error:', error);
+          get().addMessage({
+            type: 'error',
+            content: `🔌 Transport error: ${error.message}`,
+            timestamp: new Date().toISOString(),
+          });
+        });
+
+        socket.on('connect', () => {
+          console.log('WebSocket connection established with ID:', socket.id);
+          set({ isConnected: true, ws: socket });
           get().addMessage({
             type: 'system',
-            content: 'Connected to game server'
+            content: '🟢 Connected to server',
+            timestamp: new Date().toISOString(),
           });
+        });
 
-          // If character exists, send character_created message to re-establish session
-          const { character, isCharacterCreated } = get();
-          if (isCharacterCreated && character.name) {
-            websocket.send(JSON.stringify({
-              type: 'character_created',
-              data: character
-            }));
-          }
-        };
-
-        websocket.onclose = () => {
+        socket.on('disconnect', (reason) => {
+          console.log('WebSocket connection closed:', reason, 'Socket ID:', socket.id);
           set({ isConnected: false });
           get().addMessage({
             type: 'system',
-            content: 'Disconnected from game server'
+            content: `🔴 Disconnected from server: ${reason}`,
+            timestamp: new Date().toISOString(),
           });
-          set({ ws: null });
+        });
 
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            get().initializeWebSocket();
-          }, 3000);
-        };
-
-        websocket.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        socket.on('connect_error', (error) => {
+          console.error('WebSocket error:', error, 'Socket ID:', socket.id);
           get().addMessage({
-            type: 'system',
-            content: 'Error connecting to game server'
+            type: 'error',
+            content: `❌ Connection error: ${error.message}`,
+            timestamp: new Date().toISOString(),
           });
-        };
+        });
 
-        websocket.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          
-          // Handle GM response
-          if (data.type === 'gm_response') {
-            get().addMessage({
-              type: 'gm_response',
-              content: data.content,
-              character: get().character // Include character context in GM messages
-            });
-            window.dispatchEvent(new Event('gmResponse'));
+        socket.on('message', (data) => {
+          try {
+            console.log('Received message:', data, 'Socket ID:', socket.id);
+            get().addMessage(data);
+          } catch (error) {
+            console.error('Error handling message:', error);
           }
-          
-          // Handle system messages
-          if (data.type === 'system') {
-            get().addMessage({
-              type: 'system',
-              content: data.content
-            });
-          } else if (data.type === 'state_update') {
-            get().setGameStats({
-              playerCount: data.players,
-              encounterCount: data.encounters,
-              rollCount: data.rolls
-            });
-          } else if (data.type === 'gm_typing') {
-            set({ isGMTyping: data.is_typing });
-          }
-        };
+        });
 
-        set({ ws: websocket });
+        set({ ws: socket });
       },
 
       updateCharacterField: (field, value) => {
@@ -197,7 +193,8 @@ const useGameStore = create(
         isCharacterCreated: state.isCharacterCreated,
         character: state.character,
         gameStats: state.gameStats,
-        isGMTyping: state.isGMTyping
+        isGMTyping: state.isGMTyping,
+        pointsRemaining: state.pointsRemaining
       })
     }
   )

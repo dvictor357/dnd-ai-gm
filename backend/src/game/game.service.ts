@@ -171,11 +171,17 @@ export class GameService {
     return this.gameStateService.getServerInfo();
   }
 
-  getRollCount(): number {
-    return this.gameStateService.getState().rolls;
+  getActiveConnections(): number {
+    return Object.values(this.gameStateService.getState().players)
+      .filter(player => player.status === 'active')
+      .length;
   }
 
   getEncounterCount(): number {
-    return this.gameStateService.getState().encounters;
+    return this.encounterService.getEncounterCount();
+  }
+
+  getRollCount(): number {
+    return this.diceService.getRollCount();
   }
 }

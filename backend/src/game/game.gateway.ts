@@ -208,6 +208,17 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
     }
   }
 
+  @SubscribeMessage('server_info')
+  async handleServerInfo(@ConnectedSocket() client: Socket) {
+    try {
+      const serverInfo = await this.gameService.getServerInfo();
+      client.emit('server_info_response', serverInfo);
+    } catch (error) {
+      this.logger.error('Error getting server info:', error);
+      client.emit('error', { message: 'Failed to get server info' });
+    }
+  }
+
   protected wrapSuccess<T>(data: T): BaseResponse & T {
     return {
       success: true,

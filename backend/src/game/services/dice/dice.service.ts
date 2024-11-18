@@ -4,6 +4,11 @@ import { DiceRoll, DiceRollResult } from '../../interfaces/dice.interface';
 @Injectable()
 export class DiceService {
   private readonly diceRegex = /\b(\d+)d(\d+)([+-]\d+)?\b/g;
+  private rollCount = 0;
+
+  getRollCount(): number {
+    return this.rollCount;
+  }
 
   /**
    * Process text and replace dice notation with roll results
@@ -14,6 +19,7 @@ export class DiceService {
     const processedText = text.replace(this.diceRegex, (match) => {
       const roll = this.processDiceNotation(match);
       rolls.push(roll);
+      this.rollCount++; // Increment roll count
       return this.formatRollResult(roll);
     });
 

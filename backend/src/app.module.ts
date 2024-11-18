@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GameModule } from './game/game.module';
+import { AIModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { GameModule } from './game/game.module';
       isGlobal: true,
     }),
     GameModule,
+    AIModule,
   ],
   controllers: [AppController],
   providers: [AppService],

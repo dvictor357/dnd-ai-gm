@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { GameController } from './game.controller';
 import { GameService } from './game.service';
 import { GameGateway } from './game.gateway';
 import { AIModule } from '../ai/ai.module';
@@ -13,6 +14,7 @@ import { EncounterService } from './services/encounter/encounter.service';
     ConfigModule.forRoot(),
     AIModule,
   ],
+  controllers: [GameController],
   providers: [
     GameService,
     GameGateway,

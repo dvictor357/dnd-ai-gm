@@ -33,4 +33,21 @@ export class AIService implements OnModuleInit {
       throw new Error('Failed to get AI response');
     }
   }
+
+  async getModelInfo(): Promise<{ type: string; name: string }> {
+    try {
+      // In a real implementation, this would get the actual model info
+      // For now, we'll return placeholder values
+      return {
+        type: 'GPT',
+        name: 'GPT-3.5-turbo',
+      };
+    } catch (error) {
+      console.error('Error getting model info:', error);
+      return {
+        type: 'Unknown',
+        name: 'Unknown',
+      };
+    }
+  }
 }

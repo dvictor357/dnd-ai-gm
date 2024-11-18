@@ -53,7 +53,7 @@ export class EncounterService {
       rewards: this.generateRewards(difficulty, partyLevel),
     };
 
-    this.encounterCount++;
+    this.incrementEncounterCount();
     const encounterId = `encounter_${this.encounterCount}`;
     this.encounters.set(encounterId, encounter);
 
@@ -62,6 +62,10 @@ export class EncounterService {
 
   getEncounterCount(): number {
     return this.encounterCount;
+  }
+
+  incrementEncounterCount(): void {
+    this.encounterCount++;
   }
 
   private getRandomEncounterType(): string {

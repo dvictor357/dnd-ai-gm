@@ -113,8 +113,69 @@ export class GameService {
       if (message.content.includes('[') && message.content.includes(']')) {
         const notation = message.content.match(/\[(.*?)\]/)?.[1];
         if (notation) {
-          const result = await this.diceService.roll(notation);
-          return `🎲 ${message.content.split('[')[0]}\n**Result:** ${result.total} (${result.results.join(' + ')}${result.modifier ? ` ${result.modifier >= 0 ? '+' : '-'} ${Math.abs(result.modifier)}` : ''})`;
+          const character = await this.getCharacter(playerId);
+          if (!character) {
+            throw new Error('Character not found');
+          }
+
+          // Parse the roll context
+          const rollContext = message.content.toLowerCase();
+          let abilityModifier = 0;
+          let proficiencyBonus = Math.ceil((character.level || 1) / 4) + 1;
+          let isSkillCheck = false;
+
+          // Calculate ability modifier based on the check type
+          if (rollContext.includes('strength') || rollContext.includes('str')) {
+            abilityModifier = Math.floor((character.stats?.strength || 10) - 10) / 2;
+          } else if (rollContext.includes('dexterity') || rollContext.includes('dex')) {
+            abilityModifier = Math.floor((character.stats?.dexterity || 10) - 10) / 2;
+          } else if (rollContext.includes('constitution') || rollContext.includes('con')) {
+            abilityModifier = Math.floor((character.stats?.constitution || 10) - 10) / 2;
+          } else if (rollContext.includes('intelligence') || rollContext.includes('int')) {
+            abilityModifier = Math.floor((character.stats?.intelligence || 10) - 10) / 2;
+          } else if (rollContext.includes('wisdom') || rollContext.includes('wis')) {
+            abilityModifier = Math.floor((character.stats?.wisdom || 10) - 10) / 2;
+          } else if (rollContext.includes('charisma') || rollContext.includes('cha')) {
+            abilityModifier = Math.floor((character.stats?.charisma || 10) - 10) / 2;
+          }
+
+          // Check if this is a skill check
+          const skillChecks = ['acrobatics', 'animal handling', 'arcana', 'athletics', 'deception', 
+                             'history', 'insight', 'intimidation', 'investigation', 'medicine', 
+                             'nature', 'perception', 'performance', 'persuasion', 'religion', 
+                             'sleight of hand', 'stealth', 'survival'];
+          isSkillCheck = skillChecks.some(skill => rollContext.includes(skill));
+
+          // Add ability modifier and proficiency bonus if applicable
+          let modifiedNotation = notation;
+          if (abilityModifier !== 0 || (isSkillCheck && proficiencyBonus !== 0)) {
+            const totalModifier = abilityModifier + (isSkillCheck ? proficiencyBonus : 0);
+            modifiedNotation = `${notation}${totalModifier >= 0 ? '+' : ''}${totalModifier}`;
+          }
+
+          const result = await this.diceService.roll(modifiedNotation);
+          
+          // Extract DC if present
+          const dcMatch = message.content.match(/DC\s*(\d+)/i);
+          const dc = dcMatch ? parseInt(dcMatch[1]) : null;
+
+          // Format the response
+          let response = `🎲 ${message.content.split('[')[0]}\n`;
+          response += `**Roll:** ${result.results[0]}`;
+          if (abilityModifier !== 0) {
+            response += ` + ${abilityModifier} (ability modifier)`;
+          }
+          if (isSkillCheck && proficiencyBonus !== 0) {
+            response += ` + ${proficiencyBonus} (proficiency)`;
+          }
+          response += `\n**Total:** ${result.total}`;
+          
+          if (dc !== null) {
+            response += `\n**DC:** ${dc}`;
+            response += `\n**Outcome:** ${result.total >= dc ? 'Success! ✅' : 'Failure ❌'}`;
+          }
+
+          return response;
         }
       }
 

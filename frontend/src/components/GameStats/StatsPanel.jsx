@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import useGameStore from '../../store/gameStore';
+import { isRollRequest } from '../../constants/gameConstants';
 import DiceRoller from '../DiceRoller/DiceRoller';
 
 const StatCard = ({ label, value, icon, trend }) => (
@@ -27,35 +28,36 @@ const StatsPanel = () => {
   const { messages } = useGameStore();
   const [previousStats, setPreviousStats] = useState(null);
   const [trends, setTrends] = useState({});
-  
+
   // Calculate all stats from messages
   const currentStats = useMemo(() => {
     const gmMessages = messages.filter(m => m.type === 'gm_response');
     const playerMessages = messages.filter(m => m.type === 'user_message');
-    
+
     return {
       messageCount: gmMessages.length,
-      actionCount: gmMessages.filter(m => 
-        ACTION_KEYWORDS.some(keyword => 
+      actionCount: gmMessages.filter(m =>
+        ACTION_KEYWORDS.some(keyword =>
           m.content.toLowerCase().includes(keyword)
         )
       ).length,
-      decisionCount: gmMessages.filter(m => 
-        DECISION_KEYWORDS.some(keyword => 
+      decisionCount: gmMessages.filter(m =>
+        DECISION_KEYWORDS.some(keyword =>
           m.content.toLowerCase().includes(keyword)
         )
       ).length,
-      rollCount: gmMessages.filter(m => 
-        ROLL_KEYWORDS.some(keyword => 
+      rollCount: gmMessages.filter(m =>
+        ROLL_KEYWORDS.some(keyword =>
           m.content.toLowerCase().includes(keyword)
         )
       ).length
     };
   }, [messages]);
-  
+
   // Check if the last GM message contains a roll request
-  const shouldShowDiceRoller = messages.length > 0 && 
-    [...messages].reverse().find(m => m.type === 'gm_response')?.content.toLowerCase().includes('roll');
+  const shouldShowDiceRoller = messages.length > 0 &&
+    [...messages].reverse().find(m => m.type === 'gm_response')?.content &&
+    isRollRequest([...messages].reverse().find(m => m.type === 'gm_response')?.content || '');
 
   // Calculate trends when stats change
   useEffect(() => {
@@ -132,7 +134,7 @@ const StatsPanel = () => {
           Game Stats
         </h2>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
@@ -147,18 +149,15 @@ const StatsPanel = () => {
           ))}
         </div>
 
-        {/* Dice Roller - Only show when a roll is requested */}
-        {shouldShowDiceRoller && (
-          <div className="transition-all duration-300 ease-in-out bg-gray-800/60 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
-            <h3 className="text-lg font-medieval text-primary-300 mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
-              </svg>
-              Dice Roller
-            </h3>
-            <DiceRoller />
-          </div>
-        )}
+        <div className="transition-all duration-300 ease-in-out bg-gray-800/60 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
+          <h3 className="text-lg font-medieval text-primary-300 mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
+            </svg>
+            Dice Roller
+          </h3>
+          <DiceRoller />
+        </div>
       </div>
     </div>
   );

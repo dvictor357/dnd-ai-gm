@@ -32,18 +32,21 @@ export class GameStateService {
 
   private initializeState(): void {
     this.state = {
-      players: {},
+      players: new Map<string, Player>(),
       encounters: 0,
       rolls: 0,
+      messages: [],
       conversations: {},
       lastUpdate: new Date().toISOString(),
       settings: { ...this.defaultSettings },
+      currentSession: undefined,
     };
   }
 
   // Player Management
   async addPlayer(playerId: string, initialData?: Partial<Player>): Promise<Player> {
     const player: Player = {
+      id: playerId,
       joined_at: new Date().toISOString(),
       status: 'active',
       last_active: new Date().toISOString(),
@@ -51,40 +54,43 @@ export class GameStateService {
       ...initialData,
     };
 
-    this.state.players[playerId] = player;
+    this.state.players.set(playerId, player);
     this.state.conversations[playerId] = [];
     this.updateLastModified();
     return player;
   }
 
   async removePlayer(playerId: string): Promise<void> {
-    delete this.state.players[playerId];
+    this.state.players.delete(playerId);
     delete this.state.conversations[playerId];
-    
+
     if (this.state.currentSession?.active_players.includes(playerId)) {
-      this.state.currentSession.active_players = 
+      this.state.currentSession.active_players =
         this.state.currentSession.active_players.filter(id => id !== playerId);
     }
-    
+
     this.updateLastModified();
   }
 
   async updatePlayerStatus(playerId: string, status: Player['status']): Promise<void> {
-    if (this.state.players[playerId]) {
-      this.state.players[playerId].status = status;
-      this.state.players[playerId].last_active = new Date().toISOString();
-      this.updateLastModified();
+    if (this.state.players.has(playerId)) {
+      const player = this.state.players.get(playerId);
+      if (player) {
+        player.status = status;
+        player.last_active = new Date().toISOString();
+        this.updateLastModified();
+      }
     }
   }
 
   async updatePlayer(playerId: string, updates: Partial<any>): Promise<void> {
-    const currentPlayer = this.state.players[playerId];
+    const currentPlayer = this.state.players.get(playerId);
     if (currentPlayer) {
-      this.state.players[playerId] = {
+      this.state.players.set(playerId, {
         ...currentPlayer,
         ...updates,
         last_active: new Date().toISOString(),
-      };
+      });
       this.updateLastModified();
     }
   }
@@ -96,8 +102,8 @@ export class GameStateService {
       started_at: new Date().toISOString(),
       scene,
       environment,
-      active_players: Object.keys(this.state.players).filter(
-        id => this.state.players[id].status === 'active'
+      active_players: Array.from(this.state.players.keys()).filter(
+        id => this.state.players.get(id)?.status === 'active'
       ),
     };
 
@@ -113,9 +119,12 @@ export class GameStateService {
 
   // Character Management
   async updateCharacter(playerId: string, character: Character): Promise<void> {
-    if (this.state.players[playerId]) {
-      this.state.players[playerId].character = character;
-      this.updateLastModified();
+    if (this.state.players.has(playerId)) {
+      const player = this.state.players.get(playerId);
+      if (player) {
+        player.character = character;
+        this.updateLastModified();
+      }
     }
   }
 
@@ -164,29 +173,35 @@ export class GameStateService {
   }
 
   getPlayer(playerId: string): Player | undefined {
-    return this.state.players[playerId];
+    return this.state.players.get(playerId);
   }
 
   getServerInfo(): ServerInfo {
     const processStartTime = process.uptime();
     const memoryUsage = process.memoryUsage();
+    const activeConnections = Array.from(this.state.players.values())
+      .filter(p => p.status === 'active').length;
 
     return {
       status: 'online',
-      activeConnections: Object.values(this.state.players)
-        .filter(p => p.status === 'active').length,
+      activeConnections,
       encounters: this.state.encounters,
       rolls: this.state.rolls,
       uptime: processStartTime,
       model: {
-        type: this.configService.get<string>('AI_MODEL', 'deepseek'),
-        name: this.configService.get<string>('AI_MODEL_NAME', 'Unknown'),
-        status: 'ready',
+        name: this.configService.get<string>('AI_MODEL_NAME', 'deepseek'),
+        type: this.configService.get<string>('AI_MODEL_TYPE', 'chat'),
+        version: this.configService.get<string>('AI_MODEL_VERSION', '1.0.0'),
+      },
+      memory: {
+        heapUsed: memoryUsage.heapUsed,
+        heapTotal: memoryUsage.heapTotal,
+        external: memoryUsage.external,
       },
       performance: {
-        memory_usage: memoryUsage.heapUsed / 1024 / 1024, // MB
-        response_time: 0, // Updated by monitoring service
-        active_sessions: this.state.currentSession ? 1 : 0,
+        memory_usage: process.memoryUsage().heapUsed / 1024 / 1024, // Convert to MB
+        response_time: 0, // This would need to be tracked separately
+        active_sessions: activeConnections,
       },
     };
   }

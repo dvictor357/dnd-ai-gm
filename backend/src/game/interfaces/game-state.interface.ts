@@ -4,9 +4,9 @@ export interface Character {
   name: string;
   race: string;
   class: string;
-  background: string;
-  level: number;
-  stats: {
+  background?: string;
+  level?: number;
+  stats?: {
     strength: number;
     dexterity: number;
     constitution: number;
@@ -14,32 +14,20 @@ export interface Character {
     wisdom: number;
     charisma: number;
   };
-  hp: {
+  hp?: {
     current: number;
     max: number;
   };
-  status: CharacterStatus[];
-  inventory: InventoryItem[];
-  abilities: string[];
-  traits: string[];
-}
-
-export interface InventoryItem {
-  name: string;
-  quantity: number;
-  description?: string;
-  type: 'weapon' | 'armor' | 'potion' | 'tool' | 'other';
-  properties?: string[];
-}
-
-export interface CharacterStatus {
-  type: 'buff' | 'debuff' | 'condition';
-  name: string;
-  duration?: number;
-  description?: string;
+  status?: string[];
+  inventory?: string[];
+  abilities?: string[];
+  traits?: string[];
+  created_at?: string;
+  last_updated?: string;
 }
 
 export interface Player {
+  id: string;
   joined_at: string;
   character?: Character;
   status: 'active' | 'inactive' | 'away';
@@ -50,16 +38,17 @@ export interface Player {
 export interface GameSession {
   id: string;
   started_at: string;
-  scene: string;
-  environment: string;
+  scene?: string;
+  environment?: string;
   active_players: string[];
   current_turn?: string;
 }
 
 export interface GameState {
-  players: Record<string, Player>;
+  players: Map<string, Player>;
   encounters: number;
   rolls: number;
+  messages: ChatMessage[];
   conversations: Record<string, ChatMessage[]>;
   currentSession?: GameSession;
   lastUpdate: string;
@@ -85,10 +74,14 @@ export interface ServerInfo {
   rolls: number;
   uptime: number;
   model: {
-    type: string;
     name: string;
-    status: 'ready' | 'busy' | 'error';
-    queue_size?: number;
+    type: string;
+    version: string;
+  };
+  memory: {
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
   };
   performance: {
     memory_usage: number;

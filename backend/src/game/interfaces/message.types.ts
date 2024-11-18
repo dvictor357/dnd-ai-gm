@@ -1,3 +1,5 @@
+import { Character } from './game-state.interface';
+
 export interface BaseResponse {
   error?: string;
   success?: boolean;
@@ -12,20 +14,9 @@ export interface ConversationMessage {
 
 export interface ChatMessage {
   content: string;
+  type: 'player' | 'gm' | 'system';
   timestamp: string;
-  type: 'user' | 'gm' | 'system';
-  playerId?: string;
-  character?: {
-    name: string;
-    race: string;
-    class: string;
-    background?: string;
-    stats?: Record<string, number>;
-    traits?: string[];
-    abilities?: string[];
-    equipment?: string[];
-  };
-  metadata?: Record<string, any>;
+  metadata?: any;
 }
 
 export interface AIResponse {
@@ -35,8 +26,8 @@ export interface AIResponse {
 }
 
 export interface TypingStatus {
-  type: 'gm_typing';
-  is_typing: boolean;
+  playerId: string;
+  isTyping: boolean;
 }
 
 export interface DiceRoll {
@@ -65,7 +56,7 @@ export interface CharacterCreatedResponse extends BaseResponse {
   event?: string;
   data?: {
     playerId: string;
-    character?: ChatMessage['character'];
+    character?: Character;
   };
 }
 

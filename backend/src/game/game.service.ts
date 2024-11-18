@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIService } from '../ai/ai.service';
-import { ServerInfo } from './interfaces/game-state.interface';
-import { Socket } from 'socket.io';
-import { ChatMessage, TypingStatus } from './interfaces/message.types';
+import { Character, Player, ServerInfo } from './interfaces/game-state.interface';
+import { Server, Socket } from 'socket.io';
+import { TypingStatus } from './interfaces/message.types';
 import { DiceService } from './services/dice/dice.service';
 import { GameStateService } from './services/state/game-state.service';
 import { CharacterService } from './services/character/character.service';
 import { EncounterService } from './services/encounter/encounter.service';
 import { DiceRoll } from './interfaces/dice.interface';
+import { WebSocketServer } from '@nestjs/websockets';
 
 @Injectable()
 export class GameService {
+  @WebSocketServer() private server: Server;
+
   constructor(
     private readonly aiService: AIService,
     private readonly configService: ConfigService,
@@ -35,21 +38,12 @@ export class GameService {
   }
 
   private async broadcastTypingStatus(isTyping: boolean): Promise<void> {
-    const message: TypingStatus = {
-      type: 'gm_typing',
-      is_typing: isTyping,
+    const typingStatus: TypingStatus = {
+      playerId: 'gm',
+      isTyping
     };
 
-    // Broadcast to all active players
-    const state = this.gameStateService.getState();
-    Object.entries(state.players)
-      .filter(([playerId, player]) => player.status === 'active')
-      .forEach(([playerId, player]) => {
-        const socket = this.getSocket(playerId);
-        if (socket) {
-          socket.emit('typing_status', message);
-        }
-      });
+    this.server?.emit('typing_status', typingStatus);
   }
 
   private getSocket(playerId: string): Socket | null {
@@ -83,79 +77,62 @@ export class GameService {
     return encounter;
   }
 
-  async handleMessage(playerId: string, message: ChatMessage): Promise<void> {
+  async handleMessage(playerId: string, message: any): Promise<string> {
     try {
-      // Process dice rolls in the message
-      const diceResult = this.diceService.wrapDiceRolls(message.content);
-      if (diceResult.rolls.length > 0) {
-        this.gameStateService.incrementRolls(diceResult.rolls.length);
-        message.content = diceResult.processedText;
-        message.metadata = {
-          ...message.metadata,
-          diceRolls: diceResult.rolls,
-        };
+      // Check if this is a roll command
+      if (message.content.includes('[') && message.content.includes(']')) {
+        const notation = message.content.match(/\[(.*?)\]/)?.[1];
+        if (notation) {
+          const result = await this.diceService.roll(notation);
+          return `🎲 ${message.content.split('[')[0]}\n**Result:** ${result.total} (${result.results.join(' + ')}${result.modifier ? ` ${result.modifier >= 0 ? '+' : '-'} ${Math.abs(result.modifier)}` : ''})`;
+        }
       }
 
-      // Add user message to conversation
-      await this.gameStateService.addMessage(playerId, message);
+      // Get character info
+      const character = await this.characterService.getCharacter(playerId);
+      if (!character) {
+        throw new Error('Character not found');
+      }
 
-      // Get character context if available
-      const character = message.character ? await this.characterService.getCharacter(playerId) : undefined;
+      // Generate AI response
+      const prompt = `
+        As a Dungeon Master, respond to this player action:
+        Character: ${character.name} (${character.race} ${character.class})
+        Action: ${message.content}
+        Keep the response under 3 sentences and make it engaging and personal.
+      `;
 
-      // Get AI response
       await this.broadcastTypingStatus(true);
-      const aiResponseContent = await this.aiService.getResponse(
-        message.content,
-        character,
-        this.gameStateService.getState().conversations[playerId] || [],
-      );
-
-      // Process dice rolls in AI response
-      const aiDiceResult = this.diceService.wrapDiceRolls(aiResponseContent);
-      if (aiDiceResult.rolls.length > 0) {
-        this.gameStateService.incrementRolls(aiDiceResult.rolls.length);
-      }
-
-      // Create and send AI message
-      const aiMessage: ChatMessage = {
-        content: aiDiceResult.processedText,
-        type: 'gm',
-        timestamp: new Date().toISOString(),
-        metadata: {
-          diceRolls: aiDiceResult.rolls,
-        },
-      };
-
-      // Add AI message to conversation
-      await this.gameStateService.addMessage(playerId, aiMessage);
-
-      // Send response to player
-      const socket = this.getSocket(playerId);
-      if (socket) {
-        socket.emit('message', aiMessage);
-      }
+      const response = await this.aiService.getResponse(prompt);
+      await this.broadcastTypingStatus(false);
+      return response;
     } catch (error) {
-      console.error('Error in handleMessage:', error);
-      await this.broadcastTypingStatus(false);
+      console.error('Error handling message:', error);
       throw error;
-    } finally {
-      await this.broadcastTypingStatus(false);
     }
   }
 
-  async setCharacter(playerId: string, character: any): Promise<void> {
-    await this.characterService.setCharacter(playerId, character);
-    await this.gameStateService.updatePlayer(playerId, {
-      character_name: character.name,
+  async setCharacter(playerId: string, character: Character): Promise<void> {
+    const player = await this.gameStateService.getPlayer(playerId);
+    if (!player) {
+      throw new Error('Player not found');
+    }
+
+    const updatedPlayer: Player = {
+      ...player,
+      character,
       last_active: new Date().toISOString(),
-    });
+    };
+
+    await this.gameStateService.updatePlayer(playerId, updatedPlayer);
   }
 
   async generateWelcomeMessage(character: any): Promise<string> {
     const prompt = `
       As a Dungeon Master, create a warm and engaging welcome message for a new player.
-      Their character is named ${character.name}, a ${character.race} ${character.class} with a ${character.background} background.
-      Keep the message under 3 sentences and make it feel personal to their character choice.
+      Character: ${character.name} (${character.race} ${character.class})
+      Background: ${character.background || 'Unknown'}
+      Keep it under 3 sentences and make it personal to the character.
     `;
 
     try {
@@ -183,5 +160,9 @@ export class GameService {
 
   getRollCount(): number {
     return this.diceService.getRollCount();
+  }
+
+  setServer(server: Server) {
+    this.server = server;
   }
 }

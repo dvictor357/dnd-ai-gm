@@ -34,6 +34,8 @@ export class CharacterService {
       inventory: character.inventory || [],
       abilities: character.abilities || [],
       traits: character.traits || [],
+      created_at: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
     };
 
     this.characters.set(playerId, completeCharacter);
@@ -50,52 +52,39 @@ export class CharacterService {
       throw new Error('Character not found');
     }
 
-    const updatedCharacter = {
+    const updatedCharacter: Character = {
       ...character,
       ...updates,
-      stats: {
-        ...character.stats,
-        ...updates.stats,
-      },
+      last_updated: new Date().toISOString(),
     };
 
     this.characters.set(playerId, updatedCharacter);
     return updatedCharacter;
   }
 
-  async deleteCharacter(playerId: string): Promise<void> {
-    this.characters.delete(playerId);
-  }
-
-  async setCharacter(playerId: string, character: any): Promise<void> {
-    // Store the character data
-    this.characters.set(playerId, {
-      ...character,
-      created_at: new Date().toISOString(),
-      last_updated: new Date().toISOString(),
-    });
-  }
-
   private calculateStartingHP(character: Character): number {
     // Base HP calculation based on class
     const baseHP: Record<string, number> = {
-      barbarian: 12,
-      fighter: 10,
-      paladin: 10,
-      ranger: 10,
-      cleric: 8,
-      druid: 8,
-      monk: 8,
-      rogue: 8,
-      warlock: 8,
-      bard: 8,
-      sorcerer: 6,
-      wizard: 6,
+      'Barbarian': 12,
+      'Fighter': 10,
+      'Paladin': 10,
+      'Ranger': 10,
+      'Cleric': 8,
+      'Druid': 8,
+      'Monk': 8,
+      'Rogue': 8,
+      'Warlock': 8,
+      'Bard': 8,
+      'Sorcerer': 6,
+      'Wizard': 6,
     };
 
-    const classHP = baseHP[character.class.toLowerCase()] || 8;
-    const constitutionMod = Math.floor((character.stats?.constitution || 10) - 10) / 2;
-
+    // Get base HP for class or default to 8
+    const classHP = baseHP[character.class] || 8;
+    
+    // Add Constitution modifier (assuming default stats if not provided)
+    const constitutionMod = Math.floor(((character.stats?.constitution || 10) - 10) / 2);
+    
     return classHP + constitutionMod;
   }
 }

@@ -25,4 +25,4 @@ import { EncounterService } from './services/encounter/encounter.service';
   ],
   exports: [GameService],
 })
-export class GameModule {}
+export class GameModule { }

@@ -41,25 +41,23 @@ const ChatWindow = () => {
   useEffect(() => {
     if (!ws) return;
 
-    const handleMessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'gm_response') {
-        // Removed setIsLoading(false) here
+    const handleMessage = (message) => {
+      if (message.type === 'gm_response') {
+        // Handle GM response
+        addMessage(message);
       }
     };
 
-    ws.addEventListener('message', handleMessage);
-    return () => ws.removeEventListener('message', handleMessage);
-  }, [ws]);
+    ws.on('message', handleMessage);
+    return () => ws.off('message', handleMessage);
+  }, [ws, addMessage]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-    // Removed setIsLoading(true) here
+    if (!chatInput.trim() || !ws || !ws.connected) return;
 
     // Add player message
-    addMessage({
+    const playerMessage = {
       type: 'action',
       content: chatInput,
       player: {
@@ -67,10 +65,11 @@ const ChatWindow = () => {
         class: character.class,
         race: character.race
       }
-    });
+    };
+    addMessage(playerMessage);
 
     // Send to server
-    ws.send(JSON.stringify({
+    ws.emit('message', {
       type: 'action',
       content: chatInput,
       character: {
@@ -80,7 +79,7 @@ const ChatWindow = () => {
         stats: character.stats,
         background: character.background
       }
-    }));
+    });
 
     setChatInput('');
   };

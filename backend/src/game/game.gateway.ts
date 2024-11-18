@@ -11,14 +11,12 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { BaseGateway } from './base/base.gateway';
 import {
-  ChatMessage,
-  CharacterCreatedResponse,
-  RollResponse,
   EncounterResponse,
   BaseResponse,
   GameEvent,
+  TypingStatus
 } from './interfaces/message.types';
-import { Character } from './interfaces/game-state.interface';
+import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -38,8 +36,16 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @WebSocketServer()
   server: Server;
 
+  protected readonly logger: Logger;
+
   constructor(private readonly gameService: GameService) {
     super(GameGateway.name);
+    this.logger = new Logger('GameGateway');
+  }
+
+  afterInit(server: Server) {
+    this.gameService.setServer(server);
+    this.logger.log('WebSocket Gateway initialized');
   }
 
   protected getPlayerIdFromSocket(client: Socket): string | null {
@@ -58,8 +64,8 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
 
       // Check for and handle duplicate connections
       for (const socket of sockets) {
-        if (socket.id !== client.id && 
-            socket.handshake.headers.origin === client.handshake.headers.origin) {
+        if (socket.id !== client.id &&
+          socket.handshake.headers.origin === client.handshake.headers.origin) {
           this.logger.log(`Disconnecting duplicate client: ${socket.id}`);
           socket.disconnect(true);
         }
@@ -96,16 +102,16 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
     try {
       this.logger.log(`Received character data from client ${client.id}:`, character);
       const playerId = this.getPlayerIdFromSocket(client);
-      
+
       if (playerId) {
         await this.gameService.setCharacter(playerId, character);
-        
+
         // Send confirmation back to client
         client.emit('character_creation_success', {
           message: 'Character created successfully!',
           character
         });
-        
+
         // Send welcome message
         const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
         client.emit('message', {
@@ -126,45 +132,32 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @SubscribeMessage('message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() message: ChatMessage,
-  ): Promise<void> {
+    @MessageBody() message: any
+  ) {
     try {
+      this.logger.log(`Received message from client ${client.id}:`, message);
       const playerId = this.getPlayerIdFromSocket(client);
+
       if (!playerId) {
         throw new Error('Player not found');
       }
 
-      // Check if this is a roll command
-      if (message.content.includes('[') && message.content.includes(']')) {
-        const notation = message.content.match(/\[(.*?)\]/)?.[1];
-        if (notation) {
-          const result = await this.gameService.handleDiceRoll(playerId, notation);
+      // Process the message
+      const response = await this.gameService.handleMessage(playerId, message);
 
-          // Create roll message
-          const rollMessage: ChatMessage = {
-            type: 'system',
-            content: `🎲 ${message.content.split('[')[0]}\n**Result:** ${result.total} (${result.results.join(' + ')}${result.modifier ? ` ${result.modifier >= 0 ? '+' : '-'} ${Math.abs(result.modifier)}` : ''})`,
-            timestamp: new Date().toISOString(),
-            metadata: {
-              roll: {
-                notation,
-                result: result.total,
-                breakdown: result.results.join(' + ')
-              }
-            }
-          };
+      // Send response back to client
+      client.emit('message', {
+        type: 'gm_response',
+        content: response,
+        timestamp: new Date().toISOString()
+      });
 
-          // Broadcast roll result
-          this.server.emit('message', rollMessage);
-          return;
-        }
-      }
-
-      // Handle normal message
-      await this.gameService.handleMessage(playerId, message);
     } catch (error) {
-      this.logger.error(`Message error: ${error.message}`);
-      client.emit('error', { message: 'Failed to process message' });
+      this.logger.error('Error handling message:', error);
+      client.emit('error', {
+        message: 'Failed to process message',
+        error: error.message
+      });
     }
   }
 
@@ -217,6 +210,15 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
       this.logger.error('Error getting server info:', error);
       client.emit('error', { message: 'Failed to get server info' });
     }
+  }
+
+  @SubscribeMessage('typing_status')
+  async handleTypingStatus(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() status: TypingStatus
+  ): Promise<void> {
+    // Broadcast typing status to all clients except sender
+    client.broadcast.emit('typing_status', status);
   }
 
   protected wrapSuccess<T>(data: T): BaseResponse & T {

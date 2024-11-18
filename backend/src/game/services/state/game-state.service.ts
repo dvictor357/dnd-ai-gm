@@ -128,6 +128,18 @@ export class GameStateService {
     }
   }
 
+  async setPlayerCharacter(playerId: string, character: Character): Promise<void> {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      throw new Error('Player not found');
+    }
+    
+    player.character = character;
+    player.last_active = new Date().toISOString();
+    this.state.players.set(playerId, player);
+    this.updateLastModified();
+  }
+
   // Conversation Management
   async addMessage(playerId: string, message: ChatMessage): Promise<void> {
     if (!this.state.conversations[playerId]) {
@@ -172,7 +184,7 @@ export class GameStateService {
     return { ...this.state };
   }
 
-  getPlayer(playerId: string): Player | undefined {
+  async getPlayer(playerId: string): Promise<Player | undefined> {
     return this.state.players.get(playerId);
   }
 

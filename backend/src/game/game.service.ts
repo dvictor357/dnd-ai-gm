@@ -119,7 +119,7 @@ export class GameService {
       }
 
       // Get character info
-      const character = await this.characterService.getCharacter(playerId);
+      const character = await this.getCharacter(playerId);
       if (!character) {
         throw new Error('Character not found');
       }
@@ -143,22 +143,12 @@ export class GameService {
   }
 
   async setCharacter(playerId: string, character: Character): Promise<void> {
-    // First create the character in CharacterService
-    const createdCharacter = await this.characterService.createCharacter(playerId, character);
+    await this.gameStateService.setPlayerCharacter(playerId, character);
+  }
 
-    // Then update the player in GameStateService
+  async getCharacter(playerId: string): Promise<Character | null> {
     const player = await this.gameStateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error('Player not found');
-    }
-
-    const updatedPlayer: Player = {
-      ...player,
-      character: createdCharacter,
-      last_active: new Date().toISOString(),
-    };
-
-    await this.gameStateService.updatePlayer(playerId, updatedPlayer);
+    return player?.character || null;
   }
 
   getServerInfo(): ServerInfo {

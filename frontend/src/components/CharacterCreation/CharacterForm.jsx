@@ -54,7 +54,8 @@ const CharacterForm = () => {
     setIsCharacterCreated,
     setPointsRemaining,
     setStat,
-    ws
+    ws,
+    addMessage
   } = useGameStore();
 
   // Point buy costs for each ability score
@@ -71,26 +72,92 @@ const CharacterForm = () => {
 
   const getPointCost = (score) => POINT_COSTS[score] || 0;
 
+  const generateRandomName = () => {
+    const prefixes = ["Ar", "Ber", "Cal", "Dor", "El", "Fal", "Gar", "Hal", "Il", "Jor", "Kel", "Lor", "Mer", "Nor", "Or", "Per", "Qar", "Ral", "Sal", "Tal"];
+    const suffixes = ["and", "or", "ion", "us", "ix", "ar", "en", "il", "or", "us", "ax", "ix", "er", "ar", "en", "il", "or", "us", "ax", "ix"];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+    return prefix + suffix;
+  };
+
+  const getRandomArrayElement = (array) => {
+    return array[Math.floor(Math.random() * array.length)];
+  };
+
+  const generateRandomStats = () => {
+    const stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+    let remainingPoints = 27;
+    const newStats = {};
+
+    // First set all stats to 8
+    stats.forEach(stat => {
+      newStats[stat] = 8;
+    });
+
+    // Randomly distribute remaining points
+    while (remainingPoints > 0) {
+      const stat = getRandomArrayElement(stats);
+      const currentValue = newStats[stat];
+
+      if (currentValue < 15) { // Max value is 15
+        const pointCost = getPointCost(currentValue + 1) - getPointCost(currentValue);
+        if (pointCost <= remainingPoints) {
+          newStats[stat]++;
+          remainingPoints -= pointCost;
+        }
+      }
+    }
+
+    return newStats;
+  };
+
+  const handleRandomize = () => {
+    // Generate random name
+    updateCharacterField('name', generateRandomName());
+
+    // Random race
+    updateCharacterField('race', getRandomArrayElement(races).name);
+
+    // Random class
+    updateCharacterField('class', getRandomArrayElement(classes).name);
+
+    // Random background
+    updateCharacterField('background', getRandomArrayElement(backgrounds).name);
+
+    // Random stats
+    const randomStats = generateRandomStats();
+    Object.entries(randomStats).forEach(([stat, value]) => {
+      setStat(stat, value);
+    });
+
+    setPointsRemaining(0);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Form submitted', { character, pointsRemaining });
-    
+
     if (!character.name || !character.race || !character.class || pointsRemaining > 0) {
-      console.log('Form validation failed', { 
-        hasName: !!character.name, 
-        hasRace: !!character.race, 
-        hasClass: !!character.class, 
-        pointsRemaining 
+      console.log('Form validation failed', {
+        hasName: !!character.name,
+        hasRace: !!character.race,
+        hasClass: !!character.class,
+        pointsRemaining
       });
       return;
     }
 
     if (ws && ws.connected) {
-      console.log('Sending character data to server');
-      setIsCharacterCreated(true);
+      console.log('Sending character data to server:', character);
       ws.emit('character_created', character);
     } else {
-      console.error('WebSocket not connected');
+      console.error('WebSocket not connected', { ws, connected: ws?.connected });
+      // Add error message to chat
+      addMessage({
+        type: 'error',
+        content: 'Could not create character: WebSocket connection lost. Please refresh the page and try again.',
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
@@ -181,7 +248,19 @@ const CharacterForm = () => {
           <div className="p-6">
             {/* Title */}
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-medieval text-primary-300">Create Your Character</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-medieval text-primary-300">Create Your Character</h2>
+                <button
+                  type="button"
+                  onClick={handleRandomize}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  <span>Randomize</span>
+                </button>
+              </div>
               <p className="text-gray-400 mt-2">Shape your destiny in this magical realm</p>
             </div>
 

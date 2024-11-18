@@ -48,9 +48,18 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
     this.logger.log('WebSocket Gateway initialized');
   }
 
-  protected getPlayerIdFromSocket(client: Socket): string | null {
-    const query = client.handshake.query;
-    return typeof query.playerId === 'string' ? query.playerId : null;
+  protected getPlayerIdFromSocket(client: Socket): string {
+    try {
+      const playerId = client.handshake.query.playerId;
+      if (!playerId || typeof playerId !== 'string') {
+        this.logger.error('Invalid player ID in socket handshake:', client.handshake.query);
+        throw new Error('No valid player ID found in socket');
+      }
+      return playerId;
+    } catch (error) {
+      this.logger.error('Error getting player ID:', error);
+      throw error;
+    }
   }
 
   @SubscribeMessage('connect')
@@ -100,49 +109,48 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
     @MessageBody() character: any
   ) {
     try {
-      this.logger.log(`Received character data from client ${client.id}:`, character);
+      this.logger.log(`Received character creation request from client ${client.id}`);
+
       const playerId = this.getPlayerIdFromSocket(client);
-
-      if (playerId) {
-        await this.gameService.setCharacter(playerId, character);
-
-        // Send confirmation back to client
-        client.emit('character_creation_success', {
-          message: 'Character created successfully!',
-          character
-        });
-
-        // First, send a brief loading message
-        await client.emit('game_message', {
-          type: 'system',
-          content: "The mists of creation swirl as your tale begins to take shape...",
-          timestamp: new Date().toISOString()
-        });
-
-        // Generate and send the main welcome scene
-        const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
-
-        // Send the rich narrative welcome message
-        await client.emit('game_message', {
-          type: 'narrative',
-          content: welcomeMessage,
-          timestamp: new Date().toISOString()
-        });
-
-        // After a brief pause, send a gentle prompt for their first action
-        setTimeout(() => {
-          client.emit('game_message', {
-            type: 'system',
-            content: "What would you like to do?",
-            timestamp: new Date().toISOString()
-          });
-        }, 2000); // 2-second delay
+      if (!playerId) {
+        throw new Error('No player ID found in socket');
       }
+
+      this.logger.log(`Setting character for player ${playerId}`);
+      await this.gameService.setCharacter(playerId, character);
+
+      // Send confirmation back to client
+      this.logger.log('Sending character creation success message');
+      client.emit('character_creation_success', {
+        message: 'Character created successfully!',
+        character
+      });
+
+      // First, send a brief loading message
+      this.logger.log('Sending initial loading message');
+      client.emit('game_message', {
+        type: 'system',
+        content: "The mists of creation swirl as your tale begins to take shape...",
+        timestamp: new Date().toISOString()
+      });
+
+      // Generate and send the main welcome scene
+      this.logger.log('Generating welcome message');
+      const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
+
+      // Send the rich narrative welcome message
+      this.logger.log('Sending welcome narrative');
+      client.emit('game_message', {
+        type: 'narrative',
+        content: welcomeMessage,
+        timestamp: new Date().toISOString()
+      });
+
     } catch (error) {
-      this.logger.error('Error handling character creation:', error);
+      this.logger.error('Error in character creation:', error);
       client.emit('character_creation_error', {
-        message: 'Failed to create character',
-        error: error.message
+        message: error.message || 'Failed to create character',
+        error: error
       });
     }
   }
@@ -150,25 +158,30 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @SubscribeMessage('message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() message: any
+    @MessageBody() data: any,
   ) {
     try {
-      this.logger.log(`Received message from client ${client.id}:`, message);
-      let playerId = this.getPlayerIdFromSocket(client);
-
-      // If no playerId but we have character data, create a new player
-      if (!playerId && message.character) {
-        playerId = client.id; // Use socket ID as temporary player ID
-        await this.gameService.connect(client, playerId);
-        await this.gameService.setCharacter(playerId, message.character);
+      const playerId = this.getPlayerIdFromSocket(client);
+      if (!playerId) {
+        client.emit('error', { message: 'No player ID found' });
+        client.disconnect(true);
+        return;
       }
 
-      if (!playerId) {
-        throw new Error('Player not found');
+      // Check if character exists for this player
+      const character = await this.gameService.getCharacter(playerId);
+      if (!character) {
+        this.logger.warn(`No character found for player ${playerId}`);
+        client.emit('error', {
+          message: 'No character found. Please create a character first.',
+          code: 'NO_CHARACTER_FOUND'
+        });
+        client.disconnect(true);
+        return;
       }
 
       // Process the message
-      const response = await this.gameService.handleMessage(playerId, message);
+      const response = await this.gameService.handleMessage(playerId, data);
 
       // Send response back to client
       client.emit('message', {
@@ -229,7 +242,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @SubscribeMessage('server_info')
   async handleServerInfo(@ConnectedSocket() client: Socket) {
     try {
-      const serverInfo = await this.gameService.getServerInfo();
+      const serverInfo = this.gameService.getServerInfo();
       client.emit('server_info_response', serverInfo);
     } catch (error) {
       this.logger.error('Error getting server info:', error);

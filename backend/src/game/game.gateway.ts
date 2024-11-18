@@ -136,7 +136,22 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   ) {
     try {
       this.logger.log(`Received message from client ${client.id}:`, message);
-      const playerId = this.getPlayerIdFromSocket(client);
+      let playerId = this.getPlayerIdFromSocket(client);
+
+      // If no playerId but we have character data, create a new player
+      if (!playerId && message.character) {
+        playerId = client.id; // Use socket ID as temporary player ID
+        await this.gameService.connect(client, playerId);
+        await this.gameService.setCharacter(playerId, message.character);
+        
+        // Send welcome message
+        const welcomeMessage = await this.gameService.generateWelcomeMessage(message.character);
+        client.emit('message', {
+          type: 'system',
+          content: welcomeMessage,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       if (!playerId) {
         throw new Error('Player not found');

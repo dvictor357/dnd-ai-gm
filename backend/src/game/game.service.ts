@@ -37,6 +37,20 @@ export class GameService {
     await this.gameStateService.removePlayer(playerId);
   }
 
+  async generateWelcomeMessage(character: Character): Promise<string> {
+    const prompt = `
+      As a Dungeon Master, create a warm welcome message for a new player:
+      Character: ${character.name} (${character.race} ${character.class})
+      Background: ${character.background || 'Unknown'}
+      Keep it brief, friendly, and engaging. Mention their specific class and race.
+    `;
+
+    await this.broadcastTypingStatus(true);
+    const response = await this.aiService.getResponse(prompt);
+    await this.broadcastTypingStatus(false);
+    return response;
+  }
+
   private async broadcastTypingStatus(isTyping: boolean): Promise<void> {
     const typingStatus: TypingStatus = {
       playerId: 'gm',
@@ -113,6 +127,10 @@ export class GameService {
   }
 
   async setCharacter(playerId: string, character: Character): Promise<void> {
+    // First create the character in CharacterService
+    const createdCharacter = await this.characterService.createCharacter(playerId, character);
+
+    // Then update the player in GameStateService
     const player = await this.gameStateService.getPlayer(playerId);
     if (!player) {
       throw new Error('Player not found');
@@ -120,28 +138,11 @@ export class GameService {
 
     const updatedPlayer: Player = {
       ...player,
-      character,
+      character: createdCharacter,
       last_active: new Date().toISOString(),
     };
 
     await this.gameStateService.updatePlayer(playerId, updatedPlayer);
-  }
-
-  async generateWelcomeMessage(character: any): Promise<string> {
-    const prompt = `
-      As a Dungeon Master, create a warm and engaging welcome message for a new player.
-      Character: ${character.name} (${character.race} ${character.class})
-      Background: ${character.background || 'Unknown'}
-      Keep it under 3 sentences and make it personal to the character.
-    `;
-
-    try {
-      const response = await this.aiService.getResponse(prompt);
-      return response || `Welcome, brave ${character.name}! Your journey as a ${character.race} ${character.class} begins now.`;
-    } catch (error) {
-      console.error('Error generating welcome message:', error);
-      return `Welcome, brave ${character.name}! Your journey as a ${character.race} ${character.class} begins now.`;
-    }
   }
 
   getServerInfo(): ServerInfo {

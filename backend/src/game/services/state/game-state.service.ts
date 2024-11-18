@@ -77,6 +77,18 @@ export class GameStateService {
     }
   }
 
+  async updatePlayer(playerId: string, updates: Partial<any>): Promise<void> {
+    const currentPlayer = this.state.players[playerId];
+    if (currentPlayer) {
+      this.state.players[playerId] = {
+        ...currentPlayer,
+        ...updates,
+        last_active: new Date().toISOString(),
+      };
+      this.updateLastModified();
+    }
+  }
+
   // Session Management
   async startNewSession(scene: string, environment: string): Promise<GameSession> {
     const session: GameSession = {

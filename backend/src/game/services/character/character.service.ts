@@ -67,6 +67,15 @@ export class CharacterService {
     this.characters.delete(playerId);
   }
 
+  async setCharacter(playerId: string, character: any): Promise<void> {
+    // Store the character data
+    this.characters.set(playerId, {
+      ...character,
+      created_at: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    });
+  }
+
   private calculateStartingHP(character: Character): number {
     // Base HP calculation based on class
     const baseHP: Record<string, number> = {

@@ -143,6 +143,30 @@ export class GameService {
     }
   }
 
+  async setCharacter(playerId: string, character: any): Promise<void> {
+    await this.characterService.setCharacter(playerId, character);
+    await this.gameStateService.updatePlayer(playerId, {
+      character_name: character.name,
+      last_active: new Date().toISOString(),
+    });
+  }
+
+  async generateWelcomeMessage(character: any): Promise<string> {
+    const prompt = `
+      As a Dungeon Master, create a warm and engaging welcome message for a new player.
+      Their character is named ${character.name}, a ${character.race} ${character.class} with a ${character.background} background.
+      Keep the message under 3 sentences and make it feel personal to their character choice.
+    `;
+
+    try {
+      const response = await this.aiService.getResponse(prompt);
+      return response || `Welcome, brave ${character.name}! Your journey as a ${character.race} ${character.class} begins now.`;
+    } catch (error) {
+      console.error('Error generating welcome message:', error);
+      return `Welcome, brave ${character.name}! Your journey as a ${character.race} ${character.class} begins now.`;
+    }
+  }
+
   getServerInfo(): ServerInfo {
     return this.gameStateService.getServerInfo();
   }

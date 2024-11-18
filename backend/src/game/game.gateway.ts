@@ -91,30 +91,35 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @SubscribeMessage('character_created')
   async handleCharacterCreated(
     @ConnectedSocket() client: Socket,
-    @MessageBody() character: Character,
-  ): Promise<CharacterCreatedResponse> {
+    @MessageBody() character: any
+  ) {
     try {
-      if (!character?.name) {
-        throw new Error('Invalid character data');
+      this.logger.log(`Received character data from client ${client.id}:`, character);
+      const playerId = this.getPlayerIdFromSocket(client);
+      
+      if (playerId) {
+        await this.gameService.setCharacter(playerId, character);
+        
+        // Send confirmation back to client
+        client.emit('character_creation_success', {
+          message: 'Character created successfully!',
+          character
+        });
+        
+        // Send welcome message
+        const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
+        client.emit('message', {
+          type: 'system',
+          content: welcomeMessage,
+          timestamp: new Date().toISOString()
+        });
       }
-
-      const playerId = `${character.name}_${Date.now()}`;
-      await this.gameService.connect(client, playerId);
-
-      const event: GameEvent = {
-        type: 'character_created',
-        timestamp: new Date().toISOString(),
-        data: { playerId, character },
-      };
-
-      this.server.emit('game_event', event);
-
-      return this.wrapSuccess({
-        event: 'character_created',
-        data: { playerId, character },
-      });
     } catch (error) {
-      return this.handleError('character creation', error);
+      this.logger.error('Error handling character creation:', error);
+      client.emit('character_creation_error', {
+        message: 'Failed to create character',
+        error: error.message
+      });
     }
   }
 

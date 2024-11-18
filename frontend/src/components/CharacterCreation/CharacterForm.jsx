@@ -74,15 +74,24 @@ const CharacterForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log('Form submitted', { character, pointsRemaining });
+    
     if (!character.name || !character.race || !character.class || pointsRemaining > 0) {
+      console.log('Form validation failed', { 
+        hasName: !!character.name, 
+        hasRace: !!character.race, 
+        hasClass: !!character.class, 
+        pointsRemaining 
+      });
       return;
     }
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      setIsCharacterCreated(true); // Set this before sending to avoid race conditions
-      ws.send(JSON.stringify({
-        type: 'character_created',
-        data: character
-      }));
+
+    if (ws && ws.connected) {
+      console.log('Sending character data to server');
+      setIsCharacterCreated(true);
+      ws.emit('character_created', character);
+    } else {
+      console.error('WebSocket not connected');
     }
   };
 

@@ -20,6 +20,7 @@ const ChatWindow = () => {
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -36,6 +37,11 @@ const ChatWindow = () => {
 
   useEffect(() => {
     scrollToBottom();
+    // Focus chat input after receiving GM response
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.type === 'gm_response' && chatInputRef.current) {
+      chatInputRef.current.focus();
+    }
   }, [messages]);
 
   // Listen for WebSocket messages to handle loading state
@@ -117,6 +123,7 @@ const ChatWindow = () => {
           ) : (
             <>
               <input
+                ref={chatInputRef}
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}

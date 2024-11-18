@@ -52,7 +52,7 @@ const useGameStore = create(
 
         const wsHost = import.meta.env.VITE_WS_HOST;
         console.log('Initializing WebSocket connection to:', wsHost);
-        
+
         const socket = io(`http://${wsHost}`, {
           path: '/ws',
           transports: ['websocket'],
@@ -168,12 +168,9 @@ const useGameStore = create(
 
       endGame: () => {
         const { ws, character } = get();
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'end_game',
-            character: character
-          }));
-          ws.close();
+        if (ws && ws.connected) {
+          ws.emit('end_game', { character });
+          ws.disconnect();
         }
         get().resetStore();
       },
@@ -182,7 +179,7 @@ const useGameStore = create(
       resetStore: () => {
         const { ws } = get();
         if (ws) {
-          ws.close();
+          ws.disconnect();
         }
         set({ ...initialState });
         get().initializeWebSocket(); // Re-initialize WebSocket after reset

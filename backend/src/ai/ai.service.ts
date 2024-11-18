@@ -10,7 +10,7 @@ export class AIService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly aiModelFactory: AIModelFactory,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.aiModel = this.aiModelFactory.createModel();
@@ -36,11 +36,24 @@ export class AIService implements OnModuleInit {
 
   async getModelInfo(): Promise<{ type: string; name: string }> {
     try {
-      // In a real implementation, this would get the actual model info
-      // For now, we'll return placeholder values
+      const modelType = this.configService.get<string>('AI_MODEL');
+      const modelName = this.configService.get<string>('OPENROUTER_MODEL');
+
+      if (modelType === 'openrouter' && modelName) {
+        return {
+          type: 'OPENROUTER',
+          name: modelName,
+        };
+      } else if (modelType === 'deepseek') {
+        return {
+          type: 'DEEPSEEK',
+          name: 'deepseek-chat',
+        };
+      }
+
       return {
-        type: 'GPT',
-        name: 'GPT-3.5-turbo',
+        type: modelType?.toUpperCase() || 'Unknown',
+        name: 'Unknown',
       };
     } catch (error) {
       console.error('Error getting model info:', error);

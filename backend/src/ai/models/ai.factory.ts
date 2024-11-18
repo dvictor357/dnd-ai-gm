@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BaseAIModel } from './base.model';
 import { DeepseekModel } from './deepseek.model';
@@ -6,7 +6,9 @@ import { OpenRouterModel } from './openrouter.model';
 
 @Injectable()
 export class AIModelFactory {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly logger = new Logger(AIModelFactory.name);
+
+  constructor(private readonly configService: ConfigService) { }
 
   createModel(): BaseAIModel {
     const modelType = this.configService.get<string>('AI_MODEL');

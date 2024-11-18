@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserIcon, ComputerDesktopIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import { UserIcon, ComputerDesktopIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import ReactMarkdown from 'react-markdown';
 import ActionSelector from './ActionSelector';
 import DiceRollCode from './DiceRollCode';
@@ -179,6 +179,8 @@ export default function ChatMessage({ message, actions }) {
         return <InformationCircleIcon className="w-5 h-5 text-blue-300/80" />;
       case 'narrative':
         return <ComputerDesktopIcon className="w-5 h-5 text-emerald-200/80" />;
+      case 'error':
+        return <ExclamationTriangleIcon className="w-5 h-5 text-red-400/90" />;
       default:
         return <UserIcon className="w-5 h-5 text-primary-300" />;
     }
@@ -192,6 +194,8 @@ export default function ChatMessage({ message, actions }) {
         return 'System';
       case 'narrative':
         return 'Narrator';
+      case 'error':
+        return 'Error';
       default:
         return message.player?.name || 'Player';
     }
@@ -207,14 +211,17 @@ export default function ChatMessage({ message, actions }) {
             ? 'bg-blue-900/20 border border-blue-700/30'
             : message.type === 'narrative'
               ? 'bg-gradient-to-br from-emerald-900/20 to-emerald-950/30 border border-emerald-700/30'
-              : message.type === 'action'
-                ? 'bg-gray-700/90'
-                : 'bg-gray-800/90'
+              : message.type === 'error'
+                ? 'bg-gradient-to-br from-red-950/30 to-red-900/20 border border-red-700/30'
+                : message.type === 'action'
+                  ? 'bg-gray-700/90'
+                  : 'bg-gray-800/90'
         } 
         rounded-lg p-4 shadow-md backdrop-blur-sm
         ${message.type === 'gm_response' ? 'shadow-amber-900/5' : ''}
         ${message.type === 'system' ? 'shadow-blue-900/5' : ''}
         ${message.type === 'narrative' ? 'shadow-emerald-900/5' : ''}
+        ${message.type === 'error' ? 'shadow-red-900/5' : ''}
       `}>
         <div className="flex items-center mb-2">
           {getIcon()}
@@ -223,7 +230,9 @@ export default function ChatMessage({ message, actions }) {
               ? 'text-blue-300'
               : message.type === 'narrative'
                 ? 'text-emerald-300'
-                : 'text-primary-300'
+                : message.type === 'error'
+                  ? 'text-red-300'
+                  : 'text-primary-300'
           }`}>
             {getTitle()}
           </span>
@@ -235,8 +244,10 @@ export default function ChatMessage({ message, actions }) {
             ? 'prose-p:leading-relaxed prose-p:text-gray-100'
             : message.type === 'system'
               ? 'prose-p:leading-relaxed prose-p:text-blue-100'
-              : message.type === 'narrative'
-                ? 'prose-p:leading-relaxed prose-p:text-emerald-50 prose-p:text-lg prose-strong:text-emerald-200 prose-em:text-emerald-100'
+            : message.type === 'narrative'
+              ? 'prose-p:leading-relaxed prose-p:text-emerald-50 prose-p:text-lg prose-strong:text-emerald-200 prose-em:text-emerald-100'
+              : message.type === 'error'
+                ? 'prose-p:leading-relaxed prose-p:text-red-100 prose-code:text-red-200'
                 : 'text-gray-100'
         }`}>
           <ReactMarkdown

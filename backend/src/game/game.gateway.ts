@@ -112,13 +112,31 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
           character
         });
 
-        // Send welcome message
-        const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
-        client.emit('message', {
+        // First, send a brief loading message
+        await client.emit('game_message', {
           type: 'system',
+          content: "The mists of creation swirl as your tale begins to take shape...",
+          timestamp: new Date().toISOString()
+        });
+
+        // Generate and send the main welcome scene
+        const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
+
+        // Send the rich narrative welcome message
+        await client.emit('game_message', {
+          type: 'narrative',
           content: welcomeMessage,
           timestamp: new Date().toISOString()
         });
+
+        // After a brief pause, send a gentle prompt for their first action
+        setTimeout(() => {
+          client.emit('game_message', {
+            type: 'system',
+            content: "What would you like to do?",
+            timestamp: new Date().toISOString()
+          });
+        }, 2000); // 2-second delay
       }
     } catch (error) {
       this.logger.error('Error handling character creation:', error);

@@ -3,6 +3,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html, body {
+    @apply h-full w-full m-0 p-0 overflow-hidden;
+  }
+
+  body {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  #root {
+    @apply h-full w-full flex flex-col overflow-hidden;
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;

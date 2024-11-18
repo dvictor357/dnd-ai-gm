@@ -39,10 +39,26 @@ export class GameService {
 
   async generateWelcomeMessage(character: Character): Promise<string> {
     const prompt = `
-      As a Dungeon Master, create a warm welcome message for a new player:
+      As a Dungeon Master, craft an immersive welcome scene for a new adventurer joining our tale:
+      
       Character: ${character.name} (${character.race} ${character.class})
       Background: ${character.background || 'Unknown'}
-      Keep it brief, friendly, and engaging. Mention their specific class and race.
+      
+      Create a rich, atmospheric introduction that:
+      1. Sets the scene with vivid sensory details (sights, sounds, smells)
+      2. Introduces their character naturally, acknowledging their race and class
+      3. Hints at their background's influence on their arrival
+      4. Presents an intriguing hook or situation that draws them into the world
+      5. Ends with a subtle prompt for their first action
+      
+      Style Guide:
+      - Use evocative, sensory-rich language
+      - Create a sense of place and atmosphere
+      - Blend their background naturally into the narrative
+      - Keep the tone warm and inviting while maintaining mystery
+      - Make their entrance feel meaningful to the world
+      
+      Remember: This is their first step into a grand adventure - make it memorable!
     `;
 
     await this.broadcastTypingStatus(true);

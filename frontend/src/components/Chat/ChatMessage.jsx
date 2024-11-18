@@ -177,6 +177,8 @@ export default function ChatMessage({ message, actions }) {
         return <ComputerDesktopIcon className="w-5 h-5 text-amber-200/80" />;
       case 'system':
         return <InformationCircleIcon className="w-5 h-5 text-blue-300/80" />;
+      case 'narrative':
+        return <ComputerDesktopIcon className="w-5 h-5 text-emerald-200/80" />;
       default:
         return <UserIcon className="w-5 h-5 text-primary-300" />;
     }
@@ -188,6 +190,8 @@ export default function ChatMessage({ message, actions }) {
         return 'GM';
       case 'system':
         return 'System';
+      case 'narrative':
+        return 'Narrator';
       default:
         return message.player?.name || 'Player';
     }
@@ -201,31 +205,40 @@ export default function ChatMessage({ message, actions }) {
           ? 'bg-gradient-to-br from-gray-800/95 to-gray-900/95 border border-gray-700/50'
           : message.type === 'system'
             ? 'bg-blue-900/20 border border-blue-700/30'
-            : message.type === 'action'
-              ? 'bg-gray-700/90'
-              : 'bg-gray-800/90'
+            : message.type === 'narrative'
+              ? 'bg-gradient-to-br from-emerald-900/20 to-emerald-950/30 border border-emerald-700/30'
+              : message.type === 'action'
+                ? 'bg-gray-700/90'
+                : 'bg-gray-800/90'
         } 
         rounded-lg p-4 shadow-md backdrop-blur-sm
         ${message.type === 'gm_response' ? 'shadow-amber-900/5' : ''}
         ${message.type === 'system' ? 'shadow-blue-900/5' : ''}
+        ${message.type === 'narrative' ? 'shadow-emerald-900/5' : ''}
       `}>
         <div className="flex items-center mb-2">
           {getIcon()}
-          <span className={`text-sm font-medium ml-2 ${message.type === 'system'
-            ? 'text-blue-300'
-            : 'text-primary-300'
-            }`}>
+          <span className={`text-sm font-medium ml-2 ${
+            message.type === 'system'
+              ? 'text-blue-300'
+              : message.type === 'narrative'
+                ? 'text-emerald-300'
+                : 'text-primary-300'
+          }`}>
             {getTitle()}
           </span>
           {message.type === 'gm_response' && <GMBadge />}
         </div>
 
-        <div className={`prose prose-invert max-w-none ${message.type === 'gm_response'
-          ? 'prose-p:leading-relaxed prose-p:text-gray-100'
-          : message.type === 'system'
-            ? 'prose-p:leading-relaxed prose-p:text-blue-100'
-            : 'text-gray-100'
-          }`}>
+        <div className={`prose prose-invert max-w-none ${
+          message.type === 'gm_response'
+            ? 'prose-p:leading-relaxed prose-p:text-gray-100'
+            : message.type === 'system'
+              ? 'prose-p:leading-relaxed prose-p:text-blue-100'
+              : message.type === 'narrative'
+                ? 'prose-p:leading-relaxed prose-p:text-emerald-50 prose-p:text-lg prose-strong:text-emerald-200 prose-em:text-emerald-100'
+                : 'text-gray-100'
+        }`}>
           <ReactMarkdown
             components={customComponents}
           >

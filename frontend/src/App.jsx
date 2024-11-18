@@ -14,26 +14,27 @@ function App() {
   }, [initializeWebSocket]);
 
   return (
-    <div className="w-full min-h-screen bg-gray-900 text-gray-100 mx-auto">
-      <div className="w-full px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-screen">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 p-4">
           {/* Character Form - Centered and wider when no character */}
-          <div className={`${isCharacterCreated
-            ? 'lg:col-span-3'
-            : 'lg:col-span-8 lg:col-start-3'
-            } bg-gray-800 rounded-lg shadow-lg overflow-auto transition-all duration-300 ease-in-out`}>
+          <div className={`${
+            isCharacterCreated
+              ? 'lg:col-span-3'
+              : 'lg:col-span-8 lg:col-start-3'
+            } bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col`}>
             <CharacterForm />
           </div>
 
           {/* Center Column - Chat Window */}
           {isCharacterCreated && (
-            <div className="lg:col-span-6 bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-              <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 shadow-lg">
+            <div className="lg:col-span-6 bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col">
+              <div className="flex-none bg-gray-800 border-b border-gray-700 shadow-lg">
                 <h1 className="text-4xl font-medieval text-center py-4 text-primary-300">
                   D&D AI Game Master
                 </h1>
               </div>
-              <div className="overflow-auto h-[calc(100%-5rem)]">
+              <div className="flex-1 overflow-hidden">
                 <ChatWindow />
               </div>
             </div>
@@ -41,13 +42,15 @@ function App() {
 
           {/* Right Column - Stats Panel */}
           {isCharacterCreated && (
-            <div className="lg:col-span-3 bg-gray-800 rounded-lg shadow-lg overflow-auto animate-fade-in">
+            <div className="lg:col-span-3 bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col animate-fade-in">
               <StatsPanel />
             </div>
           )}
         </div>
       </div>
-      <ServerStatus />
+      <div className="flex-none">
+        <ServerStatus />
+      </div>
     </div>
   );
 }

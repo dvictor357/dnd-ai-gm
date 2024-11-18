@@ -89,12 +89,21 @@ const useGameStore = create(
           console.error(`Connection error: ${error.message}`);
         });
 
-        socket.on('message', (data) => {
+        socket.on('game_message', (data) => {
           try {
-            console.log('Received message:', data, 'Socket ID:', socket.id);
+            console.log('Received game message:', data, 'Socket ID:', socket.id);
             get().addMessage(data);
           } catch (error) {
-            console.error('Error handling message:', error);
+            console.error('Error handling game message:', error);
+          }
+        });
+
+        socket.on('message', (data) => {
+          try {
+            console.log('Received legacy message:', data, 'Socket ID:', socket.id);
+            get().addMessage(data);
+          } catch (error) {
+            console.error('Error handling legacy message:', error);
           }
         });
 

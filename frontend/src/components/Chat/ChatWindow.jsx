@@ -82,8 +82,8 @@ const ChatWindow = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-800 rounded-lg shadow-lg">
-      <div className="flex justify-between items-center px-4 py-2 border-b border-gray-700">
+    <div className="flex flex-col h-full">
+      <div className="flex-none flex justify-between items-center px-4 py-2 border-b border-gray-700">
         <h2 className="text-lg font-semibold text-white">
           {character.name ? `${character.name}'s Adventure` : 'D&D Adventure'}
         </h2>
@@ -101,14 +101,14 @@ const ChatWindow = () => {
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-12rem)] min-h-[400px]" ref={messagesContainerRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
+      <form onSubmit={handleSubmit} className="flex-none p-4 border-t border-gray-700">
         <div className="flex space-x-4">
           {isGMTyping ? (
             <div className="flex-1 bg-gray-800/50 border border-primary-500/20 rounded-lg py-3">
@@ -122,7 +122,7 @@ const ChatWindow = () => {
                 onChange={(e) => setChatInput(e.target.value)}
                 disabled={!isCharacterCreated}
                 placeholder={isCharacterCreated ? "What would you like to do?" : "Create your character to begin..."}
-                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500"
               />
               <button
                 type="submit"

@@ -140,10 +140,10 @@ export class GameService {
           }
 
           // Check if this is a skill check
-          const skillChecks = ['acrobatics', 'animal handling', 'arcana', 'athletics', 'deception', 
-                             'history', 'insight', 'intimidation', 'investigation', 'medicine', 
-                             'nature', 'perception', 'performance', 'persuasion', 'religion', 
-                             'sleight of hand', 'stealth', 'survival'];
+          const skillChecks = ['acrobatics', 'animal handling', 'arcana', 'athletics', 'deception',
+            'history', 'insight', 'intimidation', 'investigation', 'medicine',
+            'nature', 'perception', 'performance', 'persuasion', 'religion',
+            'sleight of hand', 'stealth', 'survival'];
           isSkillCheck = skillChecks.some(skill => rollContext.includes(skill));
 
           // Add ability modifier and proficiency bonus if applicable
@@ -154,85 +154,142 @@ export class GameService {
           }
 
           const result = await this.diceService.roll(modifiedNotation);
-          
+
           // Extract DC if present
           const dcMatch = message.content.match(/DC\s*(\d+)/i);
           const dc = dcMatch ? parseInt(dcMatch[1]) : null;
 
-          // Format the response
-          let response = `🎲 ${message.content.split('[')[0]}\n`;
-          response += `**Roll:** ${result.results[0]}`;
+          // Format the roll result
+          let rollResult = `🎲 ${message.content.split('[')[0]}\n`;
+          rollResult += `**Roll:** ${result.results[0]}`;
           if (abilityModifier !== 0) {
-            response += ` + ${abilityModifier} (ability modifier)`;
+            rollResult += ` + ${abilityModifier} (ability modifier)`;
           }
           if (isSkillCheck && proficiencyBonus !== 0) {
-            response += ` + ${proficiencyBonus} (proficiency)`;
+            rollResult += ` + ${proficiencyBonus} (proficiency)`;
           }
-          response += `\n**Total:** ${result.total}`;
-          
+          rollResult += `\n**Total:** ${result.total}`;
+
           if (dc !== null) {
-            response += `\n**DC:** ${dc}`;
-            response += `\n**Outcome:** ${result.total >= dc ? 'Success! ✅' : 'Failure ❌'}`;
+            rollResult += `\n**DC:** ${dc}`;
+            rollResult += `\n**Outcome:** ${result.total >= dc ? 'Success! ✅' : 'Failure ❌'}`;
           }
 
-          return response;
+          // Generate narrative response using unified prompt
+          const narrativeResponse = await this.generateResponse(character, message.content, {
+            isRollResponse: true,
+            rollDetails: {
+              action: message.content.split('[')[0],
+              result: result.results[0],
+              abilityModifier,
+              proficiencyBonus: isSkillCheck ? proficiencyBonus : 0,
+              total: result.total,
+              dc,
+              isSuccess: dc !== null ? result.total >= dc : null
+            }
+          });
+
+          // Combine roll result and narrative
+          return `${rollResult}\n\n${narrativeResponse}`;
         }
       }
 
-      // Get character info
+      // Get character info for non-roll actions
       const character = await this.getCharacter(playerId);
       if (!character) {
         throw new Error('Character not found');
       }
 
-      // Generate AI response
-      const prompt = `
-        As a Dungeon Master, respond to this player action in the context of D&D 5e rules:
-        
-        CHARACTER INFORMATION:
-        Name: ${character.name}
-        Race: ${character.race}
-        Class: ${character.class}
-        Level: ${character.level || 1}
-        Background: ${character.background || 'Unknown'}
-        
-        ATTRIBUTES:
-        Strength: ${character.stats?.strength || 10} (${Math.floor((character.stats?.strength || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.strength || 10) - 10) / 2})
-        Dexterity: ${character.stats?.dexterity || 10} (${Math.floor((character.stats?.dexterity || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.dexterity || 10) - 10) / 2})
-        Constitution: ${character.stats?.constitution || 10} (${Math.floor((character.stats?.constitution || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.constitution || 10) - 10) / 2})
-        Intelligence: ${character.stats?.intelligence || 10} (${Math.floor((character.stats?.intelligence || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.intelligence || 10) - 10) / 2})
-        Wisdom: ${character.stats?.wisdom || 10} (${Math.floor((character.stats?.wisdom || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.wisdom || 10) - 10) / 2})
-        Charisma: ${character.stats?.charisma || 10} (${Math.floor((character.stats?.charisma || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.charisma || 10) - 10) / 2})
-
-        COMBAT STATS:
-        HP: ${character.hp?.current || 'Not specified'} / ${character.hp?.max || 'Not specified'}
-        
-        SKILLS & PROFICIENCIES:
-        Proficiency Bonus: +${Math.ceil((character.level || 1) / 4) + 1}
-        
-        PLAYER ACTION:
-        ${message.content}
-        
-        RESPONSE GUIDELINES:
-        1. Identify the type of action (combat, skill check, spell, social, etc.)
-        2. Consider relevant attributes and modifiers for any required checks
-        3. Request appropriate rolls using [dice] notation when needed
-        4. Specify DCs for any required checks
-        5. Apply proficiency bonus (+${Math.ceil((character.level || 1) / 4) + 1}) if the character is proficient
-        6. Describe the outcome based on the character's capabilities and attributes
-        
-        Keep the response engaging and personal while integrating game mechanics naturally.
-        Aim for 2-3 sentences that blend narrative and mechanics seamlessly.
-      `;
-
-      await this.broadcastTypingStatus(true);
-      const response = await this.aiService.getResponse(prompt);
-      await this.broadcastTypingStatus(false);
-      return response;
+      // For non-roll actions, use the same unified prompt system
+      return await this.generateResponse(character, message.content);
     } catch (error) {
       console.error('Error handling message:', error);
       throw error;
     }
+  }
+
+  private async generateResponse(
+    character: Character,
+    action: string,
+    rollInfo?: {
+      isRollResponse: boolean;
+      rollDetails?: {
+        action: string;
+        result: number;
+        abilityModifier: number;
+        proficiencyBonus: number;
+        total: number;
+        dc: number | null;
+        isSuccess: boolean | null;
+      };
+    }
+  ): Promise<string> {
+    const prompt = `
+      As a Dungeon Master, ${rollInfo?.isRollResponse ? 'narrate the outcome of this roll' : 'respond to this player action'} in the context of D&D 5e:
+
+      CHARACTER INFORMATION:
+      Name: ${character.name}
+      Race: ${character.race}
+      Class: ${character.class}
+      Level: ${character.level || 1}
+      Background: ${character.background || 'Unknown'}
+
+      ATTRIBUTES:
+      Strength: ${character.stats?.strength || 10} (${Math.floor((character.stats?.strength || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.strength || 10) - 10) / 2})
+      Dexterity: ${character.stats?.dexterity || 10} (${Math.floor((character.stats?.dexterity || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.dexterity || 10) - 10) / 2})
+      Constitution: ${character.stats?.constitution || 10} (${Math.floor((character.stats?.constitution || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.constitution || 10) - 10) / 2})
+      Intelligence: ${character.stats?.intelligence || 10} (${Math.floor((character.stats?.intelligence || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.intelligence || 10) - 10) / 2})
+      Wisdom: ${character.stats?.wisdom || 10} (${Math.floor((character.stats?.wisdom || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.wisdom || 10) - 10) / 2})
+      Charisma: ${character.stats?.charisma || 10} (${Math.floor((character.stats?.charisma || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.charisma || 10) - 10) / 2})
+
+      COMBAT STATS:
+      HP: ${character.hp?.current || 'Not specified'} / ${character.hp?.max || 'Not specified'}
+      
+      SKILLS & PROFICIENCIES:
+      Proficiency Bonus: +${Math.ceil((character.level || 1) / 4) + 1}
+
+      ${rollInfo?.isRollResponse ? `
+      ROLL CONTEXT:
+      Action: ${rollInfo.rollDetails?.action}
+      Roll Result: ${rollInfo.rollDetails?.result}
+      Modifiers: ${rollInfo.rollDetails?.abilityModifier !== 0 ? `Ability +${rollInfo.rollDetails?.abilityModifier}` : ''} ${rollInfo.rollDetails?.proficiencyBonus !== 0 ? `Proficiency +${rollInfo.rollDetails?.proficiencyBonus}` : ''}
+      Total: ${rollInfo.rollDetails?.total}
+      ${rollInfo.rollDetails?.dc !== null ? `DC: ${rollInfo.rollDetails?.dc}` : ''}
+      ${rollInfo.rollDetails?.isSuccess !== null ? `Outcome: ${rollInfo.rollDetails?.isSuccess ? 'Success' : 'Failure'}` : ''}
+      ` : `
+      PLAYER ACTION:
+      ${action}
+      `}
+
+      RESPONSE GUIDELINES:
+      ${rollInfo?.isRollResponse ? `
+      1. Acknowledge the roll result and total
+      2. Describe the outcome in vivid narrative detail
+      3. Explain how close they were to success/failure
+      4. Detail the immediate consequences
+      5. Set up the next action or choice
+      ` : `
+      1. Identify the type of action (combat, skill check, spell, social, etc.)
+      2. Consider relevant attributes and modifiers
+      3. Request rolls using [dice] notation when needed
+      4. Specify DCs for checks
+      5. Apply proficiency bonus if relevant
+      `}
+
+      STYLE GUIDE:
+      - Use evocative, sensory-rich language
+      - Blend mechanics with narrative seamlessly
+      - Keep responses focused and engaging
+      - Create anticipation for what comes next
+      - Make each action feel meaningful
+
+      Aim for 2-4 sentences that combine ${rollInfo?.isRollResponse ? 'the mechanical outcome' : 'game mechanics'} with rich narrative description.
+    `;
+
+    await this.broadcastTypingStatus(true);
+    const response = await this.aiService.getResponse(prompt);
+    await this.broadcastTypingStatus(false);
+    return response;
   }
 
   async setCharacter(playerId: string, character: Character): Promise<void> {

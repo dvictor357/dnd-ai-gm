@@ -126,10 +126,42 @@ export class GameService {
 
       // Generate AI response
       const prompt = `
-        As a Dungeon Master, respond to this player action:
-        Character: ${character.name} (${character.race} ${character.class})
-        Action: ${message.content}
-        Keep the response under 3 sentences and make it engaging and personal.
+        As a Dungeon Master, respond to this player action in the context of D&D 5e rules:
+        
+        CHARACTER INFORMATION:
+        Name: ${character.name}
+        Race: ${character.race}
+        Class: ${character.class}
+        Level: ${character.level || 1}
+        Background: ${character.background || 'Unknown'}
+        
+        ATTRIBUTES:
+        Strength: ${character.stats?.strength || 10} (${Math.floor((character.stats?.strength || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.strength || 10) - 10) / 2})
+        Dexterity: ${character.stats?.dexterity || 10} (${Math.floor((character.stats?.dexterity || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.dexterity || 10) - 10) / 2})
+        Constitution: ${character.stats?.constitution || 10} (${Math.floor((character.stats?.constitution || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.constitution || 10) - 10) / 2})
+        Intelligence: ${character.stats?.intelligence || 10} (${Math.floor((character.stats?.intelligence || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.intelligence || 10) - 10) / 2})
+        Wisdom: ${character.stats?.wisdom || 10} (${Math.floor((character.stats?.wisdom || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.wisdom || 10) - 10) / 2})
+        Charisma: ${character.stats?.charisma || 10} (${Math.floor((character.stats?.charisma || 10) - 10) / 2 >= 0 ? '+' : ''}${Math.floor((character.stats?.charisma || 10) - 10) / 2})
+
+        COMBAT STATS:
+        HP: ${character.hp?.current || 'Not specified'} / ${character.hp?.max || 'Not specified'}
+        
+        SKILLS & PROFICIENCIES:
+        Proficiency Bonus: +${Math.ceil((character.level || 1) / 4) + 1}
+        
+        PLAYER ACTION:
+        ${message.content}
+        
+        RESPONSE GUIDELINES:
+        1. Identify the type of action (combat, skill check, spell, social, etc.)
+        2. Consider relevant attributes and modifiers for any required checks
+        3. Request appropriate rolls using [dice] notation when needed
+        4. Specify DCs for any required checks
+        5. Apply proficiency bonus (+${Math.ceil((character.level || 1) / 4) + 1}) if the character is proficient
+        6. Describe the outcome based on the character's capabilities and attributes
+        
+        Keep the response engaging and personal while integrating game mechanics naturally.
+        Aim for 2-3 sentences that blend narrative and mechanics seamlessly.
       `;
 
       await this.broadcastTypingStatus(true);

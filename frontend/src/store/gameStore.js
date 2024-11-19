@@ -6,7 +6,7 @@ import { io } from 'socket.io-client';
 const getOrCreatePlayerId = () => {
   const storedId = localStorage.getItem('playerId');
   if (storedId) return storedId;
-  
+
   const newId = crypto.randomUUID();
   localStorage.setItem('playerId', newId);
   return newId;
@@ -112,7 +112,12 @@ const useGameStore = create(
         socket.on('game_message', (message) => {
           try {
             console.log('Received game message:', message);
-            get().addMessage(message);
+            const playerId = getOrCreatePlayerId();
+            get().addMessage({
+              ...message,
+              senderId: message.playerId, // Sender's ID
+              currentPlayerId: playerId // Current player's ID
+            });
           } catch (error) {
             console.error('Error handling game message:', error);
           }
@@ -151,7 +156,7 @@ const useGameStore = create(
 
           // If it's a NO_CHARACTER_FOUND error, reset character creation state
           if (error.code === 'NO_CHARACTER_FOUND') {
-            set({ 
+            set({
               isCharacterCreated: false,
               messages: [], // Clear messages
               ws: null // Clear socket connection

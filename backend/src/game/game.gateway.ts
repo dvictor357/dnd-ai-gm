@@ -221,6 +221,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
         type: 'player_message',
         content: data.content,
         character: character,
+        playerId: playerId,
         timestamp: new Date().toISOString()
       });
 

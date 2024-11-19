@@ -29,7 +29,7 @@ const processSpecialFormatting = (text) => {
       while ((match = regex.exec(text)) !== null) {
         const start = match.index;
         const end = start + match[0].length;
-        
+
         // Check if this match overlaps with any skip range
         let shouldSkip = false;
         for (let range of skipRanges) {
@@ -171,6 +171,10 @@ const GMBadge = () => (
 );
 
 export default function ChatMessage({ message, actions }) {
+  if (message.type === 'player_message' && message.senderId === message.currentPlayerId) {
+    return null;
+  }
+
   const getIcon = () => {
     switch (message.type) {
       case 'gm_response':
@@ -196,6 +200,8 @@ export default function ChatMessage({ message, actions }) {
         return 'Narrator';
       case 'error':
         return 'Error';
+      case 'player_message':
+        return message.character?.name || 'Player';
       default:
         return message.player?.name || 'Player';
     }
@@ -225,31 +231,29 @@ export default function ChatMessage({ message, actions }) {
       `}>
         <div className="flex items-center mb-2">
           {getIcon()}
-          <span className={`text-sm font-medium ml-2 ${
-            message.type === 'system'
+          <span className={`text-sm font-medium ml-2 ${message.type === 'system'
               ? 'text-blue-300'
               : message.type === 'narrative'
                 ? 'text-emerald-300'
                 : message.type === 'error'
                   ? 'text-red-300'
                   : 'text-primary-300'
-          }`}>
+            }`}>
             {getTitle()}
           </span>
           {message.type === 'gm_response' && <GMBadge />}
         </div>
 
-        <div className={`prose prose-invert max-w-none ${
-          message.type === 'gm_response'
+        <div className={`prose prose-invert max-w-none ${message.type === 'gm_response'
             ? 'prose-p:leading-relaxed prose-p:text-gray-100'
             : message.type === 'system'
               ? 'prose-p:leading-relaxed prose-p:text-blue-100'
-            : message.type === 'narrative'
-              ? 'prose-p:leading-relaxed prose-p:text-emerald-50 prose-p:text-lg prose-strong:text-emerald-200 prose-em:text-emerald-100'
-              : message.type === 'error'
-                ? 'prose-p:leading-relaxed prose-p:text-red-100 prose-code:text-red-200'
-                : 'text-gray-100'
-        }`}>
+              : message.type === 'narrative'
+                ? 'prose-p:leading-relaxed prose-p:text-emerald-50 prose-p:text-lg prose-strong:text-emerald-200 prose-em:text-emerald-100'
+                : message.type === 'error'
+                  ? 'prose-p:leading-relaxed prose-p:text-red-100 prose-code:text-red-200'
+                  : 'text-gray-100'
+          }`}>
           <ReactMarkdown
             components={customComponents}
           >

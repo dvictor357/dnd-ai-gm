@@ -10,10 +10,14 @@ import { CharacterService } from './services/character/character.service';
 import { EncounterService } from './services/encounter/encounter.service';
 import { DiceRoll } from './interfaces/dice.interface';
 import { WebSocketServer } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class GameService {
   @WebSocketServer() private server: Server;
+  private readonly logger: Logger;
+  private gameRooms: Map<string, string> = new Map(); // Track game rooms
 
   constructor(
     private readonly aiService: AIService,
@@ -22,7 +26,9 @@ export class GameService {
     private readonly gameStateService: GameStateService,
     private readonly characterService: CharacterService,
     private readonly encounterService: EncounterService,
-  ) { }
+  ) {
+    this.logger = new Logger('GameService');
+  }
 
   async connect(socket: Socket, playerId: string): Promise<void> {
     await this.gameStateService.addPlayer(playerId, {
@@ -342,5 +348,44 @@ export class GameService {
 
   setServer(server: Server) {
     this.server = server;
+  }
+
+  async getOrCreateGameRoom(playerId: string): Promise<string> {
+    // Check if player is already in a room
+    let room = this.gameRooms.get(playerId);
+    if (room) {
+      return room;
+    }
+
+    // Check if there's an available room with space
+    const availableRooms = Array.from(this.gameRooms.values());
+    const uniqueRooms = [...new Set(availableRooms)];
+
+    for (const existingRoom of uniqueRooms) {
+      const sockets = await this.server.in(existingRoom).fetchSockets();
+      if (sockets.length < 4) { // Limit 4 players per room
+        this.gameRooms.set(playerId, existingRoom);
+        return existingRoom;
+      }
+    }
+
+    // Create new room if no available rooms
+    const newRoom = `game_${crypto.randomUUID()}`;
+    this.gameRooms.set(playerId, newRoom);
+    return newRoom;
+  }
+
+  async removePlayerFromRoom(playerId: string): Promise<void> {
+    this.gameRooms.delete(playerId);
+  }
+
+  async getPlayersInRoom(room: string): Promise<string[]> {
+    const players: string[] = [];
+    for (const [playerId, playerRoom] of this.gameRooms.entries()) {
+      if (playerRoom === room) {
+        players.push(playerId);
+      }
+    }
+    return players;
   }
 }

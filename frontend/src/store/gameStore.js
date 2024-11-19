@@ -18,6 +18,7 @@ const initialState = {
   chatInput: '',
   isConnected: false,
   isCharacterCreated: false,
+  currentRoom: null,
   character: {
     name: '',
     race: '',
@@ -57,7 +58,7 @@ const useGameStore = create(
         if (ws) {
           console.log('Cleaning up existing socket connection');
           ws.disconnect();
-          set({ ws: null, isConnected: false });
+          set({ ws: null, isConnected: false, currentRoom: null });
         }
 
         const wsHost = import.meta.env.VITE_WS_HOST;
@@ -108,39 +109,36 @@ const useGameStore = create(
           });
         });
 
-        socket.on('game_message', (data) => {
+        socket.on('game_message', (message) => {
           try {
-            console.log('Received game message:', data, 'Socket ID:', socket.id);
-            get().addMessage(data);
+            console.log('Received game message:', message);
+            get().addMessage(message);
           } catch (error) {
             console.error('Error handling game message:', error);
           }
         });
 
-        socket.on('message', (data) => {
+        socket.on('typing_status', (status) => {
           try {
-            console.log('Received legacy message:', data, 'Socket ID:', socket.id);
-            get().addMessage(data);
+            console.log('Received typing status:', status);
+            set({ isGMTyping: status.isTyping });
           } catch (error) {
-            console.error('Error handling legacy message:', error);
+            console.error('Error handling typing status:', error);
           }
         });
 
-        socket.on('disconnect', (reason) => {
-          console.log('WebSocket connection closed:', reason, 'Socket ID:', socket.id);
-          set({ isConnected: false });
-          // Removed disconnect message since we have ServerStatus indicator
+        socket.on('disconnect', () => {
+          console.log('WebSocket disconnected');
+          set({ isConnected: false, currentRoom: null });
         });
 
         socket.on('connect_error', (error) => {
-          console.error('WebSocket error:', error, 'Socket ID:', socket.id);
-          // Only log connection errors to console, ServerStatus will show the state
-          console.error(`Connection error: ${error.message}`);
-        });
-
-        socket.on('typing_status', (status) => {
-          console.log('Typing status:', status);
-          set({ isGMTyping: status.isTyping });
+          console.error('WebSocket error:', error);
+          get().addMessage({
+            type: 'error',
+            content: `Connection error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          });
         });
 
         socket.on('error', (error) => {
@@ -197,10 +195,14 @@ const useGameStore = create(
       setPointsRemaining: (points) =>
         set({ pointsRemaining: points }),
 
-      addMessage: (message) =>
+      addMessage: (message) => {
         set((state) => ({
-          messages: [...state.messages, message]
-        })),
+          messages: [...state.messages, {
+            ...message,
+            timestamp: message.timestamp || new Date().toISOString()
+          }]
+        }));
+      },
 
       setGameStats: (stats) =>
         set((state) => ({
@@ -219,10 +221,11 @@ const useGameStore = create(
 
       setWebSocket: (ws) => set({ ws }),
 
+      setCurrentRoom: (room) => set({ currentRoom: room }),
+
       endGame: () => {
-        const { ws, character } = get();
-        if (ws && ws.connected) {
-          ws.emit('end_game', { character });
+        const { ws } = get();
+        if (ws) {
           ws.disconnect();
         }
         get().resetStore();
@@ -230,12 +233,11 @@ const useGameStore = create(
 
       // Reset store
       resetStore: () => {
-        const { ws } = get();
-        if (ws) {
-          ws.disconnect();
-        }
-        set({ ...initialState });
-        get().initializeWebSocket(); // Re-initialize WebSocket after reset
+        set({
+          ...initialState,
+          messages: [], // Clear messages
+          currentRoom: null // Clear room
+        });
       },
     }),
     {
@@ -246,7 +248,8 @@ const useGameStore = create(
         character: state.character,
         gameStats: state.gameStats,
         isGMTyping: state.isGMTyping,
-        pointsRemaining: state.pointsRemaining
+        pointsRemaining: state.pointsRemaining,
+        currentRoom: state.currentRoom
       })
     }
   )

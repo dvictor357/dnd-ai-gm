@@ -16,7 +16,8 @@ const ChatWindow = () => {
     chatInput,
     setChatInput,
     endGame,
-    isGMTyping
+    isGMTyping,
+    currentRoom
   } = useGameStore();
 
   const [isEndGameModalOpen, setIsEndGameModalOpen] = useState(false);
@@ -66,9 +67,14 @@ const ChatWindow = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-none flex justify-between items-center px-4 py-2 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white">
-          {character.name ? `${character.name}'s Adventure` : 'D&D Adventure'}
-        </h2>
+        <div className="flex flex-col">
+          <h2 className="text-lg font-semibold text-white">
+            {character.name ? `${character.name}'s Adventure` : 'D&D Adventure'}
+          </h2>
+          {currentRoom && (
+            <span className="text-sm text-gray-400">Room: {currentRoom}</span>
+          )}
+        </div>
         <button
           onClick={() => setIsEndGameModalOpen(true)}
           className="text-red-400 hover:text-red-300 transition-colors"

@@ -37,6 +37,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   server: Server;
 
   protected readonly logger: Logger;
+  private playerRooms: Map<string, string> = new Map(); // Track which room each player is in
 
   constructor(private readonly gameService: GameService) {
     super(GameGateway.name);
@@ -67,20 +68,33 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
     try {
       this.logger.log(`Client connected: ${client.id}`);
 
+      const playerId = this.getPlayerIdFromSocket(client);
+      if (!playerId) {
+        throw new Error('No valid player ID found in socket');
+      }
+
+      // Get or create game room for the player
+      const gameRoom = await this.gameService.getOrCreateGameRoom(playerId);
+      this.playerRooms.set(playerId, gameRoom);
+      await client.join(gameRoom);
+
+      this.logger.log(`Player ${playerId} joined room ${gameRoom}`);
+
       // Get all connected sockets in this namespace
       const sockets = await this.server.fetchSockets();
       this.logger.log(`Total clients connected: ${sockets.length}`);
 
-      // Check for and handle duplicate connections
+      // Only disconnect if the same playerId is already connected
       for (const socket of sockets) {
-        if (socket.id !== client.id &&
-          socket.handshake.headers.origin === client.handshake.headers.origin) {
-          this.logger.log(`Disconnecting duplicate client: ${socket.id}`);
-          socket.disconnect(true);
+        if (socket.id !== client.id) {
+          const socketPlayerId = socket.handshake.query.playerId;
+          if (socketPlayerId === playerId) {
+            this.logger.log(`Disconnecting duplicate player connection: ${socket.id}`);
+            socket.disconnect(true);
+          }
         }
       }
 
-      const playerId = this.getPlayerIdFromSocket(client);
       if (playerId) {
         await this.gameService.connect(client, playerId);
       }
@@ -96,6 +110,12 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
       this.logger.log(`Client disconnected: ${client.id}`);
       const playerId = this.getPlayerIdFromSocket(client);
       if (playerId) {
+        const room = this.playerRooms.get(playerId);
+        if (room) {
+          await client.leave(room);
+          this.playerRooms.delete(playerId);
+          this.logger.log(`Player ${playerId} left room ${room}`);
+        }
         await this.gameService.disconnect(playerId);
       }
     } catch (error) {
@@ -116,6 +136,11 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
         throw new Error('No player ID found in socket');
       }
 
+      const room = this.playerRooms.get(playerId);
+      if (!room) {
+        throw new Error('Player not in any room');
+      }
+
       this.logger.log(`Setting character for player ${playerId}`);
       await this.gameService.setCharacter(playerId, character);
 
@@ -126,9 +151,9 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
         character
       });
 
-      // First, send a brief loading message
+      // First, send a brief loading message to all in room
       this.logger.log('Sending initial loading message');
-      client.emit('game_message', {
+      this.server.to(room).emit('game_message', {
         type: 'system',
         content: "The mists of creation swirl as your tale begins to take shape...",
         timestamp: new Date().toISOString()
@@ -138,9 +163,9 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
       this.logger.log('Generating welcome message');
       const welcomeMessage = await this.gameService.generateWelcomeMessage(character);
 
-      // Send the rich narrative welcome message
+      // Send the rich narrative welcome message to all in room
       this.logger.log('Sending welcome narrative');
-      client.emit('game_message', {
+      this.server.to(room).emit('game_message', {
         type: 'narrative',
         content: welcomeMessage,
         timestamp: new Date().toISOString()
@@ -168,6 +193,14 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
         return;
       }
 
+      // Get the room for this player
+      const room = this.playerRooms.get(playerId);
+      if (!room) {
+        throw new Error('Player not in any room');
+      }
+
+      this.logger.log(`Broadcasting message in room ${room} from player ${playerId}`);
+
       // Check if character exists for this player
       const character = await this.gameService.getCharacter(playerId);
       if (!character) {
@@ -183,8 +216,16 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
       // Process the message
       const response = await this.gameService.handleMessage(playerId, data);
 
-      // Send response back to client
-      client.emit('message', {
+      // Broadcast the player's message to all clients in the room
+      await this.server.to(room).emit('game_message', {
+        type: 'player_message',
+        content: data.content,
+        character: character,
+        timestamp: new Date().toISOString()
+      });
+
+      // Broadcast GM's response to all clients in the room
+      await this.server.to(room).emit('game_message', {
         type: 'gm_response',
         content: response,
         timestamp: new Date().toISOString()

@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import useGameStore from '../../store/gameStore';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const ChatWindow = () => {
   const {
@@ -17,6 +18,8 @@ const ChatWindow = () => {
     endGame,
     isGMTyping
   } = useGameStore();
+
+  const [isEndGameModalOpen, setIsEndGameModalOpen] = useState(false);
 
   const virtuosoRef = useRef(null);
   const chatInputRef = useRef(null);
@@ -67,11 +70,7 @@ const ChatWindow = () => {
           {character.name ? `${character.name}'s Adventure` : 'D&D Adventure'}
         </h2>
         <button
-          onClick={() => {
-            if (window.confirm('Are you sure you want to end this game? This will clear all your character data and chat history.')) {
-              endGame();
-            }
-          }}
+          onClick={() => setIsEndGameModalOpen(true)}
           className="text-red-400 hover:text-red-300 transition-colors"
           title="End Game"
         >
@@ -124,6 +123,14 @@ const ChatWindow = () => {
           )}
         </div>
       </form>
+
+      <ConfirmationModal
+        isOpen={isEndGameModalOpen}
+        onClose={() => setIsEndGameModalOpen(false)}
+        onConfirm={endGame}
+        title="End Game"
+        message="Are you sure you want to end this game? This will clear all your character data and chat history."
+      />
     </div>
   );
 };

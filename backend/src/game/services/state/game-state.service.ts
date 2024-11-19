@@ -133,7 +133,7 @@ export class GameStateService {
     if (!player) {
       throw new Error('Player not found');
     }
-    
+
     player.character = character;
     player.last_active = new Date().toISOString();
     this.state.players.set(playerId, player);
@@ -154,14 +154,14 @@ export class GameStateService {
     this.updateLastModified();
   }
 
-  // Statistics and Counters
-  incrementEncounters(): void {
-    this.state.encounters++;
+  // Stats Management
+  incrementRolls(count: number = 1): void {
+    this.state.rolls += count;
     this.updateLastModified();
   }
 
-  incrementRolls(count: number = 1): void {
-    this.state.rolls += count;
+  incrementEncounters(): void {
+    this.state.encounters += 1;
     this.updateLastModified();
   }
 
@@ -181,7 +181,7 @@ export class GameStateService {
 
   // State Access
   getState(): GameState {
-    return { ...this.state };
+    return this.state;
   }
 
   async getPlayer(playerId: string): Promise<Player | undefined> {
@@ -191,31 +191,38 @@ export class GameStateService {
   getServerInfo(): ServerInfo {
     const processStartTime = process.uptime();
     const memoryUsage = process.memoryUsage();
-    const activeConnections = Array.from(this.state.players.values())
-      .filter(p => p.status === 'active').length;
+    const activeConnections = this.state.players.size;
 
     return {
       status: 'online',
-      activeConnections,
-      encounters: this.state.encounters,
-      rolls: this.state.rolls,
       uptime: processStartTime,
+      playerCount: activeConnections,
+      encounterCount: this.state.encounters,
+      rollCount: this.state.rolls,
+      lastUpdate: this.state.lastUpdate,
       model: {
         name: this.configService.get<string>('AI_MODEL_NAME', 'deepseek'),
         type: this.configService.get<string>('AI_MODEL_TYPE', 'chat'),
         version: this.configService.get<string>('AI_MODEL_VERSION', '1.0.0'),
       },
-      memory: {
-        heapUsed: memoryUsage.heapUsed,
-        heapTotal: memoryUsage.heapTotal,
-        external: memoryUsage.external,
-      },
-      performance: {
-        memory_usage: process.memoryUsage().heapUsed / 1024 / 1024, // Convert to MB
-        response_time: 0, // This would need to be tracked separately
-        active_sessions: activeConnections,
+      system: {
+        memory: {
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
+          external: Math.round(memoryUsage.external / 1024 / 1024), // MB
+          usagePercent: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+        },
+        performance: {
+          responseTime: this.getAverageResponseTime(),
+          activeSessions: activeConnections,
+        },
       },
     };
+  }
+
+  private getAverageResponseTime(): number {
+    // This is a placeholder - you might want to implement actual response time tracking
+    return 0;
   }
 
   private updateLastModified(): void {

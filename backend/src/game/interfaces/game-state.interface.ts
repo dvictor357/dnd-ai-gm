@@ -49,10 +49,10 @@ export interface GameState {
   encounters: number;
   rolls: number;
   messages: ChatMessage[];
-  conversations: Record<string, ChatMessage[]>;
-  currentSession?: GameSession;
+  conversations: { [key: string]: ChatMessage[] };
   lastUpdate: string;
   settings: GameSettings;
+  currentSession?: GameSession;
 }
 
 export interface GameSettings {
@@ -68,24 +68,27 @@ export interface GameSettings {
 }
 
 export interface ServerInfo {
-  status: string;
-  activeConnections: number;
-  encounters: number;
-  rolls: number;
   uptime: number;
+  playerCount: number;
+  encounterCount: number;
+  rollCount: number;
+  lastUpdate: string;
+  status: string;
   model: {
     name: string;
     type: string;
     version: string;
   };
-  memory: {
-    heapUsed: number;
-    heapTotal: number;
-    external: number;
-  };
-  performance: {
-    memory_usage: number;
-    response_time: number;
-    active_sessions: number;
+  system: {
+    memory: {
+      heapUsed: number;
+      heapTotal: number;
+      external: number;
+      usagePercent: number;
+    };
+    performance: {
+      responseTime: number;
+      activeSessions: number;
+    };
   };
 }

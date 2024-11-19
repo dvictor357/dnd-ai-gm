@@ -89,6 +89,8 @@ const useGameStore = create(
         socket.on('connect', () => {
           console.log('WebSocket connection established with ID:', socket.id);
           set({ isConnected: true, ws: socket });
+          // Request initial stats upon connection
+          socket.emit('get_stats');
         });
 
         socket.on('character_creation_success', (data) => {
@@ -166,6 +168,17 @@ const useGameStore = create(
               get().initializeWebSocket();
             }, 1000);
           }
+        });
+
+        socket.on('stats_update', (stats) => {
+          console.log('Stats update received:', stats);
+          set((state) => ({
+            gameStats: {
+              playerCount: stats.playerCount || 0,
+              encounterCount: stats.encounterCount || 0,
+              rollCount: stats.rollCount || 0,
+            }
+          }));
         });
 
         set({ ws: socket });

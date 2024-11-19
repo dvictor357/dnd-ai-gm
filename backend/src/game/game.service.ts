@@ -333,17 +333,17 @@ export class GameService {
   }
 
   getActiveConnections(): number {
-    return Object.values(this.gameStateService.getState().players)
-      .filter(player => player.status === 'active')
-      .length;
+    return this.gameStateService.getState().players.size;
   }
 
   getEncounterCount(): number {
-    return this.encounterService.getEncounterCount();
+    const state = this.gameStateService.getState();
+    return state?.encounters || 0;
   }
 
   getRollCount(): number {
-    return this.diceService.getRollCount();
+    const state = this.gameStateService.getState();
+    return state?.rolls || 0;
   }
 
   setServer(server: Server) {

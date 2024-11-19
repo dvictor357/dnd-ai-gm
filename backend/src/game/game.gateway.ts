@@ -17,6 +17,7 @@ import {
   TypingStatus
 } from './interfaces/message.types';
 import { Logger } from '@nestjs/common';
+import { interval } from 'rxjs';
 
 @WebSocketGateway({
   cors: {
@@ -38,6 +39,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
 
   protected readonly logger: Logger;
   private playerRooms: Map<string, string> = new Map(); // Track which room each player is in
+  private statsInterval: any;
 
   constructor(private readonly gameService: GameService) {
     super(GameGateway.name);
@@ -47,6 +49,38 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   afterInit(server: Server) {
     this.gameService.setServer(server);
     this.logger.log('WebSocket Gateway initialized');
+    
+    // Start periodic stats broadcast
+    this.startStatsBroadcast();
+  }
+
+  private startStatsBroadcast() {
+    // Broadcast stats every 5 seconds
+    this.statsInterval = setInterval(() => {
+      try {
+        const stats = {
+          playerCount: this.gameService.getActiveConnections(),
+          encounterCount: this.gameService.getEncounterCount(),
+          rollCount: this.gameService.getRollCount()
+        };
+        this.server.emit('stats_update', stats);
+      } catch (error) {
+        this.logger.error('Error broadcasting stats:', error);
+      }
+    }, 5000);
+  }
+
+  private broadcastStats() {
+    try {
+      const stats = {
+        playerCount: this.gameService.getActiveConnections(),
+        encounterCount: this.gameService.getEncounterCount(),
+        rollCount: this.gameService.getRollCount()
+      };
+      this.server.emit('stats_update', stats);
+    } catch (error) {
+      this.logger.error('Error broadcasting stats:', error);
+    }
   }
 
   protected getPlayerIdFromSocket(client: Socket): string {
@@ -97,6 +131,8 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
 
       if (playerId) {
         await this.gameService.connect(client, playerId);
+        // Broadcast updated stats
+        this.broadcastStats();
       }
     } catch (error) {
       this.logger.error(`Connection error: ${error.message}`);
@@ -117,6 +153,8 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
           this.logger.log(`Player ${playerId} left room ${room}`);
         }
         await this.gameService.disconnect(playerId);
+        // Broadcast updated stats
+        this.broadcastStats();
       }
     } catch (error) {
       this.logger.error(`Disconnect error: ${error.message}`);
@@ -299,6 +337,21 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   ): Promise<void> {
     // Broadcast typing status to all clients except sender
     client.broadcast.emit('typing_status', status);
+  }
+
+  @SubscribeMessage('get_stats')
+  async handleGetStats(@ConnectedSocket() client: Socket) {
+    try {
+      const stats = {
+        playerCount: this.gameService.getActiveConnections(),
+        encounterCount: this.gameService.getEncounterCount(),
+        rollCount: this.gameService.getRollCount()
+      };
+      client.emit('stats_update', stats);
+    } catch (error) {
+      this.logger.error('Error getting stats:', error);
+      client.emit('error', { message: 'Failed to get stats' });
+    }
   }
 
   protected wrapSuccess<T>(data: T): BaseResponse & T {

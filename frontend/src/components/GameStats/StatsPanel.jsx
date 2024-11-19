@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import useGameStore from '../../store/gameStore';
 import { isRollRequest } from '../../constants/gameConstants';
-import DiceRoller from '../DiceRoller/DiceRoller';
 
 const StatCard = ({ label, value, icon, trend }) => (
   <div className="p-4 bg-gray-800/60 backdrop-blur-sm rounded-lg border border-gray-700/50 hover:border-primary-500/30 transition-all duration-300">
@@ -147,16 +146,6 @@ const StatsPanel = () => {
               trend={stat.trend}
             />
           ))}
-        </div>
-
-        <div className="transition-all duration-300 ease-in-out bg-gray-800/60 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
-          <h3 className="text-lg font-medieval text-primary-300 mb-4 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
-            </svg>
-            Dice Roller
-          </h3>
-          <DiceRoller />
         </div>
       </div>
     </div>

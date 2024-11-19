@@ -3,7 +3,7 @@ import useGameStore from '../../store/gameStore';
 import AnimatedDice from './AnimatedDice';
 import { COMMON_ROLLS, DAMAGE_DICE } from '../../constants/gameConstants';
 
-const DiceRoller = () => {
+const DiceRoller = ({ triggerAction }) => {
   const [modifier, setModifier] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showDamage, setShowDamage] = useState(false);
@@ -28,6 +28,7 @@ const DiceRoller = () => {
     setIsRolling(false);
     const rollNotation = `${rollType} [${quantity}${diceType}${modifier >= 0 ? '+' : ''}${modifier}]`;
     setChatInput(rollNotation);
+    if (triggerAction) triggerAction();
   };
 
   return (

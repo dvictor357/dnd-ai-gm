@@ -84,7 +84,7 @@ const ChatWindow = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <Virtuoso
           ref={virtuosoRef}
           data={messages}
@@ -99,43 +99,49 @@ const ChatWindow = () => {
             </div>
           )}
           style={{ height: '100%' }}
+          className="scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-none p-4 border-t border-gray-700">
+      <form onSubmit={handleSubmit} className="flex-none p-4 border-t border-gray-700 bg-gray-800">
         <div className="flex space-x-4">
           {isGMTyping ? (
-            <div className="flex-1 bg-gray-800/50 border border-primary-500/20 rounded-lg py-3">
+            <div className="flex-1 flex items-center px-4 py-2 bg-gray-700 rounded-lg">
               <TypingIndicator />
             </div>
           ) : (
-            <>
-              <input
-                ref={chatInputRef}
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="What would you like to do?"
-                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500"
-              />
-              <button
-                type="submit"
-                disabled={!chatInput.trim()}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-              </button>
-            </>
+            <input
+              type="text"
+              ref={chatInputRef}
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="What would you like to do?"
+              className="flex-1 px-4 py-2 bg-gray-700 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           )}
+          <button
+            type="submit"
+            disabled={!chatInput.trim() || !ws?.connected}
+            className={`p-2 rounded-lg ${
+              chatInput.trim() && ws?.connected
+                ? 'bg-primary-500 hover:bg-primary-600 text-white'
+                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <PaperAirplaneIcon className="w-6 h-6" />
+          </button>
         </div>
       </form>
 
       <ConfirmationModal
         isOpen={isEndGameModalOpen}
         onClose={() => setIsEndGameModalOpen(false)}
-        onConfirm={endGame}
+        onConfirm={() => {
+          endGame();
+          setIsEndGameModalOpen(false);
+        }}
         title="End Game"
-        message="Are you sure you want to end this game? This will clear all your character data and chat history."
+        message="Are you sure you want to end this game? This will clear all messages and character data."
       />
     </div>
   );

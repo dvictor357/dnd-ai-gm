@@ -47,45 +47,26 @@ const ServerStatus = () => {
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   return (
-    <div 
-      className={`fixed bottom-4 right-4 bg-gray-800 rounded-lg shadow-lg text-sm text-gray-300 transition-all duration-300 ${
-        isExpanded ? 'w-64' : 'w-auto'
-      }`}
-    >
-      {/* Header - Always visible */}
-      <div 
-        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-700 rounded-t-lg"
-        onClick={toggleExpanded}
-      >
-        <div className="flex items-center space-x-2">
-          <div 
-            className={`w-2 h-2 rounded-full ${
-              isConnected && serverInfo.status === 'ok' 
-                ? 'bg-green-500' 
-                : 'bg-red-500'
-            }`}
-          />
-          <span className="font-medium">Server Status</span>
-        </div>
-        {isExpanded ? (
-          <ChevronDownIcon className="w-4 h-4" />
-        ) : (
-          <ChevronUpIcon className="w-4 h-4" />
-        )}
-      </div>
-
-      {/* Expandable Content */}
-      {isExpanded && (
-        <div className="p-3 space-y-2 border-t border-gray-700">
+    <div className="py-2">
+      <div className="flex items-center justify-between">
+        {/* Basic Info - Always Visible */}
+        <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span>Connection:</span>
+            <div 
+              className={`w-2 h-2 rounded-full ${
+                isConnected && serverInfo.status === 'ok' 
+                  ? 'bg-green-500' 
+                  : 'bg-red-500'
+              }`}
+            />
+            <span className="font-medium">Server Status</span>
+          </div>
+
+          <div className="flex items-center space-x-2 text-sm">
             <span className={isConnected ? 'text-green-400' : 'text-red-400'}>
               {isConnected ? 'Connected' : 'Disconnected'}
             </span>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <span>Server:</span>
+            <span className="text-gray-500">|</span>
             <span className={
               serverInfo.status === 'ok' ? 'text-green-400' : 
               serverInfo.status === 'checking' ? 'text-yellow-400' : 'text-red-400'
@@ -93,29 +74,37 @@ const ServerStatus = () => {
               {serverInfo.status}
             </span>
           </div>
+        </div>
 
-          {serverInfo.status === 'ok' && (
-            <>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Players:</span> {serverInfo.activeConnections}
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Encounters:</span> {serverInfo.encounters}
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Rolls:</span> {serverInfo.rolls}
-              </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">AI Model:</span>{' '}
-                {serverInfo.model.type} ({serverInfo.model.name})
-              </div>
-            </>
-          )}
+        {/* Stats Summary - Always Visible */}
+        <div className="flex items-center space-x-4 text-sm text-gray-400">
+          <div>Players: {serverInfo.activeConnections}</div>
+          <div>Encounters: {serverInfo.encounters}</div>
+          <div>Rolls: {gameStats.rollCount}</div>
+          <button 
+            onClick={toggleExpanded}
+            className="flex items-center space-x-1 hover:text-gray-200"
+          >
+            <span>Details</span>
+            {isExpanded ? (
+              <ChevronDownIcon className="w-4 h-4" />
+            ) : (
+              <ChevronUpIcon className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
 
-          <div className="border-t border-gray-700 pt-2 mt-2 space-y-1">
-            <div className="text-gray-400 flex justify-between">
-              <span className="text-gray-500">Dice Rolls:</span>
-              <span>{gameStats.rollCount}</span>
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="mt-2 pt-2 border-t border-gray-700 text-sm text-gray-400">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-500">Total Server Rolls:</span> {serverInfo.rolls}
+            </div>
+            <div>
+              <span className="text-gray-500">AI Model:</span>{' '}
+              {serverInfo.model.type} ({serverInfo.model.name})
             </div>
           </div>
         </div>

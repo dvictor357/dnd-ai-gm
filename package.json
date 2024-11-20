@@ -4,11 +4,12 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "dev": "bun run --cwd frontend dev & bun run --cwd backend start:dev",
-        "install": "bun install"
+        "dev": "bun run --cwd frontend dev & bun run --cwd backend start:dev"
     },
-    "workspaces": [
-        "frontend",
-        "backend"
-    ]
+    "workspaces": {
+        "packages": [
+            "frontend",
+            "backend"
+        ]
+    }
 }

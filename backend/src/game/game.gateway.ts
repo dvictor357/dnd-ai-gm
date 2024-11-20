@@ -17,7 +17,7 @@ import {
   TypingStatus
 } from './interfaces/message.types';
 import { Logger } from '@nestjs/common';
-import { interval } from 'rxjs';
+import { Character } from './interfaces/game-state.interface';
 
 @WebSocketGateway({
   cors: {
@@ -49,7 +49,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   afterInit(server: Server) {
     this.gameService.setServer(server);
     this.logger.log('WebSocket Gateway initialized');
-    
+
     // Start periodic stats broadcast
     this.startStatsBroadcast();
   }
@@ -164,7 +164,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
   @SubscribeMessage('character_created')
   async handleCharacterCreated(
     @ConnectedSocket() client: Socket,
-    @MessageBody() character: any
+    @MessageBody() character: Character
   ) {
     try {
       this.logger.log(`Received character creation request from client ${client.id}`);
@@ -193,7 +193,7 @@ export class GameGateway extends BaseGateway implements OnGatewayConnection, OnG
       this.logger.log('Sending initial loading message');
       this.server.to(room).emit('game_message', {
         type: 'system',
-        content: "The mists of creation swirl as your tale begins to take shape...",
+        content: `The mists of creation swirl as your tale begins to take shape... As ${character.name} the ${character.class} joins the realm.`,
         timestamp: new Date().toISOString()
       });
 

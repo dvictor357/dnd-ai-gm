@@ -14,7 +14,7 @@ export class OpenRouterModel extends BaseAIModel {
     super();
     this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
     this.model = this.configService.get<string>('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct');
-    
+
     if (!this.apiKey) {
       throw new Error('OPENROUTER_API_KEY is not set in environment variables');
     }
@@ -53,13 +53,21 @@ export class OpenRouterModel extends BaseAIModel {
         },
       );
 
+      if (!response.data?.choices?.length) {
+        console.error('Invalid OpenRouter API response:', response.data);
+        throw new Error('Invalid response format from OpenRouter API');
+      }
+
       return {
         response: response.data.choices[0].message.content,
         usage: response.data.usage,
       };
     } catch (error) {
       console.error('Error calling OpenRouter API:', error.response?.data || error.message);
-      throw new Error('Failed to get response from OpenRouter API');
+      if (error.response?.data) {
+        console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw new Error(`Failed to get response from OpenRouter API: ${error.message}`);
     }
   }
 }

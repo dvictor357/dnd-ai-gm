@@ -94,15 +94,14 @@ const ChatWindow = () => {
           followOutput="smooth"
           initialTopMostItemIndex={messages.length - 1}
           alignToBottom={true}
-          stick
+          stick="true"
           itemContent={(index, message) => (
             <div className="p-4">
               <ChatMessage key={index} message={message} />
             </div>
           )}
-          style={{ height: '100%' }}
-          className="scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
         />
+        {isGMTyping && <TypingIndicator />}
       </div>
 
       <form onSubmit={handleSubmit} className="flex-none p-4 border-t border-gray-700 bg-gray-800">

@@ -50,14 +50,12 @@ const useGameStore = create(
       // Actions
       initializeWebSocket: () => {
         const { ws } = get();
-        if (ws && ws.connected) {
-          console.log('WebSocket already connected, skipping initialization');
-          return;
-        }
 
+        // Clean up existing socket if it exists
         if (ws) {
           console.log('Cleaning up existing socket connection');
           ws.disconnect();
+          ws.removeAllListeners();
           set({ ws: null, isConnected: false, currentRoom: null });
         }
 
@@ -68,20 +66,39 @@ const useGameStore = create(
           path: '/ws',
           transports: ['websocket'],
           reconnection: true,
-          reconnectionDelay: 5000,
-          reconnectionAttempts: Infinity,
-          timeout: 45000,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 5,
+          timeout: 20000,
           forceNew: true,
           query: {
             playerId: getOrCreatePlayerId()
           }
         });
 
+        // Handle connection events
         socket.io.on("error", (error) => {
           console.error('Transport error:', error);
           get().addMessage({
             type: 'error',
-            content: `🔌 Transport error: ${error.message}`,
+            content: `🔌 Connection error: ${error.message}. Attempting to reconnect...`,
+            timestamp: new Date().toISOString(),
+          });
+        });
+
+        socket.io.on("reconnect_attempt", (attempt) => {
+          console.log(`Reconnection attempt ${attempt}`);
+          get().addMessage({
+            type: 'system',
+            content: `🔄 Attempting to reconnect (${attempt}/5)...`,
+            timestamp: new Date().toISOString(),
+          });
+        });
+
+        socket.io.on("reconnect_failed", () => {
+          console.log('Reconnection failed');
+          get().addMessage({
+            type: 'error',
+            content: '❌ Failed to reconnect. Please refresh the page.',
             timestamp: new Date().toISOString(),
           });
         });
@@ -89,17 +106,27 @@ const useGameStore = create(
         socket.on('connect', () => {
           console.log('WebSocket connection established with ID:', socket.id);
           set({ isConnected: true, ws: socket });
-          // Request initial stats upon connection
           socket.emit('get_stats');
+          get().addMessage({
+            type: 'system',
+            content: '🟢 Connected to game server',
+            timestamp: new Date().toISOString(),
+          });
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.log('WebSocket disconnected:', reason);
+          set({ isConnected: false });
+          get().addMessage({
+            type: 'system',
+            content: `🔴 Disconnected from game server: ${reason}`,
+            timestamp: new Date().toISOString(),
+          });
         });
 
         socket.on('character_creation_success', (data) => {
           console.log('Character creation success received:', data);
-          set((state) => {
-            console.log('Setting isCharacterCreated to true. Previous state:', state.isCharacterCreated);
-            return { isCharacterCreated: true };
-          });
-          console.log('State after character creation:', get());
+          set({ isCharacterCreated: true });
         });
 
         socket.on('character_creation_error', (error) => {
@@ -132,11 +159,6 @@ const useGameStore = create(
           } catch (error) {
             console.error('Error handling typing status:', error);
           }
-        });
-
-        socket.on('disconnect', () => {
-          console.log('WebSocket disconnected');
-          set({ isConnected: false, currentRoom: null });
         });
 
         socket.on('connect_error', (error) => {
@@ -256,19 +278,15 @@ const useGameStore = create(
           messages: [], // Clear messages
           currentRoom: null // Clear room
         });
+        get().initializeWebSocket();
       },
     }),
     {
       name: 'game-storage',
       partialize: (state) => ({
-        messages: state.messages,
         isCharacterCreated: state.isCharacterCreated,
         character: state.character,
-        gameStats: state.gameStats,
-        isGMTyping: state.isGMTyping,
-        pointsRemaining: state.pointsRemaining,
-        currentRoom: state.currentRoom
-      })
+      }),
     }
   )
 );

@@ -1,99 +1,129 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# DnD AI Master - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This is the backend service for the DnD AI Master project, built with NestJS. It provides the server-side logic, AI integration, and WebSocket communication for the DnD game master assistant.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech Stack
 
-## Description
+- **Framework:** NestJS 10
+- **Runtime:** Node.js with TypeScript
+- **WebSocket:** Socket.io
+- **HTTP Client:** Axios
+- **AI Integration:** 
+  - Deepseek API
+  - OpenRouter API
+- **Database:** PostgreSQL
+- **Configuration:** @nestjs/config
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Getting Started
 
-## Project setup
+### Prerequisites
 
+- Bun (latest version)
+- Node.js 18+ (for some dev tools)
+- PostgreSQL database server
+
+### Environment Setup
+
+1. Copy the environment example file:
 ```bash
-$ npm install
+cp .env.example .env
 ```
 
-## Compile and run the project
+2. Configure your environment variables in `.env`:
+```env
+# Server Configuration
+PORT=3000
 
-```bash
-# development
-$ npm run start
+# Deepseek API Configuration
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
 
-# watch mode
-$ npm run start:dev
+# OpenRouter API Configuration
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+OPENROUTER_MODEL=gryphe/mythomax-l2-13b:free
 
-# production mode
-$ npm run start:prod
+# AI Model Selection (options: deepseek, openrouter)
+AI_MODEL=openrouter
+
+# Database Configuration
+POSTGRES_USER=your_postgres_user
+POSTGRES_PASSWORD=your_postgres_password
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=dnd_game
 ```
 
-## Run tests
+### Installation
 
 ```bash
-# unit tests
-$ npm run test
+# Install dependencies
+bun install
+```
+
+### Development
+
+```bash
+# Start development server with hot-reload
+bun run start:dev
+
+# Start development server with debugging
+bun run start:debug
+
+# Start production server
+bun run start:prod
+```
+
+### Testing
+
+```bash
+# Unit tests
+bun run test
 
 # e2e tests
-$ npm run test:e2e
+bun run test:e2e
 
-# test coverage
-$ npm run test:cov
+# Test coverage
+bun run test:cov
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Code Quality
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+# Run ESLint
+bun run lint
+
+# Format code
+bun run format
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Project Structure
 
-## Resources
+- `/src` - Source code
+  - `/ai` - AI model integrations
+  - `/game` - Game logic and state management
+  - `/websocket` - WebSocket gateways and events
+  - `/config` - Configuration modules
+  - `/types` - TypeScript type definitions
+  - `/utils` - Utility functions
+  - `/database` - Database models and migrations
 
-Check out a few resources that may come in handy when working with NestJS:
+## Features
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Real-time communication via WebSocket
+- AI-powered game master responses
+- Multiple AI model support (Deepseek, OpenRouter)
+- Game state management
+- Persistent storage with PostgreSQL
+- Environment-based configuration
+- Comprehensive testing setup
+- TypeScript type safety
 
-## Support
+## API Documentation
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+The API documentation is available at `/api` when running the development server. It provides detailed information about available endpoints and WebSocket events.
 
-## Stay in touch
+## Contributing
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. Ensure all tests pass
+2. Follow the existing code style
+3. Add tests for new features
+4. Update documentation as needed

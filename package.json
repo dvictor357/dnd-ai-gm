@@ -1,0 +1,14 @@
+{
+    "name": "dnd-ai-master",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --cwd frontend dev & bun run --cwd backend start:dev",
+        "install": "bun install"
+    },
+    "workspaces": [
+        "frontend",
+        "backend"
+    ]
+}

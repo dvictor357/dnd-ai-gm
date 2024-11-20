@@ -1,136 +1,165 @@
-# D&D AI Game Master
+# DnD AI Master
 
-An interactive multiplayer Dungeons & Dragons game with an AI-powered Game Master, built with React and FastAPI.
+An AI-powered Dungeons & Dragons game master assistant that helps create and run immersive tabletop RPG experiences.
 
-## Features
+## Project Overview
 
-- Real-time multiplayer interaction via WebSocket
-- Flexible AI Game Master with support for multiple models:
-  - DeepSeek
-  - OpenRouter (supporting various models like Claude-2, GPT-4, etc.)
-- Character creation and management
-- Interactive chat with dice rolling system
-- Dynamic dice roll tracking and stats
-- Modern React-based UI with Tailwind CSS
+This is a monorepo project consisting of:
+- A React-based frontend for player interaction
+- A NestJS backend for game logic and AI integration
+- Real-time communication via WebSocket
+- Multiple AI model integrations for dynamic storytelling
+
+## Tech Stack
+
+### Frontend
+- React 18 with Vite
+- Tailwind CSS
+- Three.js for 3D visualization
+- Socket.io Client
+- Zustand for state management
+
+### Backend
+- NestJS 10
+- Socket.io for WebSocket
+- PostgreSQL database
+- Multiple AI integrations:
+  - Deepseek API
+  - OpenRouter API
+
+### Development Tools
+- Bun as package manager
+- TypeScript
+- ESLint + Prettier
+- Jest for testing
+
+## Getting Started
+
+### Prerequisites
+
+- Bun (latest version)
+- Node.js 18+
+- PostgreSQL database server
+- AI API keys (Deepseek and/or OpenRouter)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/dnd-ai-master.git
+cd dnd-ai-master
+```
+
+2. Install dependencies:
+```bash
+bun install
+```
+
+3. Set up environment variables:
+```bash
+# Frontend
+cd frontend
+cp .env.example .env
+
+# Backend
+cd ../backend
+cp .env.example .env
+```
+
+4. Configure your environment variables:
+- Frontend `.env`:
+  ```
+  VITE_WS_HOST=localhost:3000
+  ```
+- Backend `.env`:
+  ```
+  PORT=3000
+  DEEPSEEK_API_KEY=your-deepseek-api-key
+  OPENROUTER_API_KEY=your-openrouter-api-key
+  OPENROUTER_MODEL=gryphe/mythomax-l2-13b:free
+  AI_MODEL=openrouter
+  POSTGRES_USER=your_postgres_user
+  POSTGRES_PASSWORD=your_postgres_password
+  POSTGRES_SERVER=localhost
+  POSTGRES_PORT=5432
+  POSTGRES_DB=dnd_game
+  ```
+
+### Development
+
+Start the development servers:
+
+```bash
+# From the root directory
+bun run dev
+```
+
+This will start both frontend and backend in development mode:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3000
+- API Documentation: http://localhost:3000/api
 
 ## Project Structure
 
 ```
 dnd-ai-master/
-├── app/                # FastAPI Backend
-│   ├── main.py        # WebSocket server and core logic
-│   └── ai_models/     # AI model implementations
-├── frontend/          # React Frontend
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   └── store/      # Zustand state management
-│   ├── package.json
-│   └── vite.config.js
-├── requirements.txt   # Python dependencies
-└── .env.example      # Environment variables template
+├── frontend/           # React frontend application
+│   ├── src/           # Source files
+│   ├── public/        # Static files
+│   └── README.md      # Frontend documentation
+├── backend/           # NestJS backend application
+│   ├── src/          # Source files
+│   │   ├── ai/       # AI model integrations
+│   │   ├── game/     # Game logic
+│   │   └── websocket/# WebSocket handlers
+│   └── README.md     # Backend documentation
+└── package.json      # Root package.json for workspace management
 ```
 
-## Setup
+## Features
 
-### Backend Setup
-1. Create a Python virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   ```
-2. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Copy `.env.example` to `.env` and configure your environment:
-   ```bash
-   cp .env.example .env
-   ```
-4. Configure your AI model in `.env`:
-   ```
-   # For DeepSeek:
-   AI_MODEL=deepseek
-   DEEPSEEK_API_KEY=your_deepseek_api_key_here
+- Real-time game state synchronization
+- AI-powered storytelling and NPC interactions
+- Dynamic 3D visualization capabilities
+- Multiple AI model support
+- Persistent game state storage
+- Responsive and modern UI
+- WebSocket-based communication
 
-   # For OpenRouter:
-   AI_MODEL=openrouter
-   OPENROUTER_API_KEY=your_openrouter_api_key_here
-   OPENROUTER_MODEL=your_preferred_model  # e.g., anthropic/claude-2
-   ```
+## Testing
 
-### Frontend Setup
-1. Install Node.js dependencies:
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-## Running the Game
-
-1. Start the backend server:
-   ```bash
-   cd app
-   python main.py
-   ```
-
-2. In a new terminal, start the frontend development server:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-3. Open your browser and navigate to `http://localhost:5173`
-
-## How to Play
-
-1. Create your character using the character creation form
-2. Use the chat interface to describe your actions and interact with the AI Game Master
-3. When prompted, use the dice roller to make ability checks and saving throws
-4. The AI Game Master will respond to your actions and guide the story
-5. Track your progress with the encounter and roll counters
-
-## AI Model Configuration
-
-The game supports multiple AI models through different providers:
-
-### DeepSeek
-- Default model for general use
-- Requires a DeepSeek API key
-
-### OpenRouter
-- Provides access to various AI models:
-  - Claude-2 by Anthropic
-  - GPT-4 by OpenAI
-  - PaLM 2 by Google
-  - And many more
-- Requires an OpenRouter API key
-- Configurable model selection via `OPENROUTER_MODEL` environment variable
-
-To switch between models, update the `AI_MODEL` variable in your `.env` file:
 ```bash
-AI_MODEL=deepseek  # For DeepSeek
-# or
-AI_MODEL=openrouter  # For OpenRouter
+# Frontend tests
+cd frontend
+bun run test
+
+# Backend tests
+cd backend
+bun run test
+bun run test:e2e
 ```
-
-## Requirements
-
-- Python 3.8+
-- Node.js 16+
-- API key for your chosen AI provider (DeepSeek or OpenRouter)
-- Modern web browser
-
-## Development
-
-- Backend: FastAPI with WebSocket for real-time communication
-- Frontend: React 18 with Vite and Tailwind CSS
-- State Management: Zustand
-- AI Integration: Modular system supporting multiple AI providers
 
 ## Contributing
 
-Feel free to submit issues and enhancement requests!
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+Please ensure you:
+- Write tests for new features
+- Update documentation as needed
+- Follow the existing code style
+- Make atomic commits with clear messages
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- NestJS team for the excellent backend framework
+- React team for the frontend framework
+- AI model providers for their APIs
+- The D&D community for inspiration

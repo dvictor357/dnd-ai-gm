@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BaseAIModel, AIModelResponse, ConversationMessage } from './base.model';
+import {
+  BaseAIModel,
+  AIModelResponse,
+  ConversationMessage,
+} from './base.model';
 import { Character } from '../utils/character.utils';
 import axios from 'axios';
 
@@ -13,7 +17,10 @@ export class OpenRouterModel extends BaseAIModel {
   constructor(private readonly configService: ConfigService) {
     super();
     this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
-    this.model = this.configService.get<string>('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct');
+    this.model = this.configService.get<string>(
+      'OPENROUTER_MODEL',
+      'mistralai/mistral-7b-instruct',
+    );
 
     if (!this.apiKey) {
       throw new Error('OPENROUTER_API_KEY is not set in environment variables');
@@ -46,7 +53,7 @@ export class OpenRouterModel extends BaseAIModel {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'HTTP-Referer': 'https://github.com/your-repo/dnd-ai', // Replace with your actual repo
             'X-Title': 'DND AI Master',
           },
@@ -63,11 +70,19 @@ export class OpenRouterModel extends BaseAIModel {
         usage: response.data.usage,
       };
     } catch (error) {
-      console.error('Error calling OpenRouter API:', error.response?.data || error.message);
+      console.error(
+        'Error calling OpenRouter API:',
+        error.response?.data || error.message,
+      );
       if (error.response?.data) {
-        console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
+        console.error(
+          'Full API error response:',
+          JSON.stringify(error.response.data, null, 2),
+        );
       }
-      throw new Error(`Failed to get response from OpenRouter API: ${error.message}`);
+      throw new Error(
+        `Failed to get response from OpenRouter API: ${error.message}`,
+      );
     }
   }
 }

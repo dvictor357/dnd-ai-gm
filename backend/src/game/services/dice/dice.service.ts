@@ -36,8 +36,9 @@ export class DiceService {
    * @param modifier Optional modifier to add to total
    */
   rollDice(count: number, sides: number, modifier = 0): DiceRoll {
-    const results = Array.from({ length: count }, () =>
-      Math.floor(Math.random() * sides) + 1
+    const results = Array.from(
+      { length: count },
+      () => Math.floor(Math.random() * sides) + 1,
     );
 
     return {

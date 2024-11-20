@@ -11,9 +11,8 @@ export class GameController {
 
   @Get('server-info')
   async getServerInfo() {
-    const info = this.gameService.getServerInfo();
     const model = await this.aiService.getModelInfo();
-    
+
     return {
       status: 'ok',
       activeConnections: this.gameService.getActiveConnections(),

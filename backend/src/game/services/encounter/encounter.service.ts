@@ -69,13 +69,7 @@ export class EncounterService {
   }
 
   private getRandomEncounterType(): string {
-    const types = [
-      'combat',
-      'exploration',
-      'social',
-      'puzzle',
-      'trap',
-    ];
+    const types = ['combat', 'exploration', 'social', 'puzzle', 'trap'];
     return types[Math.floor(Math.random() * types.length)];
   }
 
@@ -104,22 +98,24 @@ export class EncounterService {
     const multiplier = difficultyMultiplier[difficulty] || 1;
     const enemyCount = Math.max(1, Math.floor((partySize * multiplier) / 2));
 
-    return Array(enemyCount).fill(null).map((_, index) => ({
-      name: `Enemy ${index + 1}`,
-      type: 'humanoid',
-      challengeRating: Math.max(1, Math.floor(partyLevel * multiplier / 2)),
-      hitPoints: this.diceService.roll(`${2 + index}d8+${partyLevel}`).total,
-      armorClass: 10 + Math.floor(partyLevel / 3),
-      stats: {
-        strength: 10 + Math.floor(Math.random() * 8),
-        dexterity: 10 + Math.floor(Math.random() * 8),
-        constitution: 10 + Math.floor(Math.random() * 8),
-        intelligence: 10 + Math.floor(Math.random() * 8),
-        wisdom: 10 + Math.floor(Math.random() * 8),
-        charisma: 10 + Math.floor(Math.random() * 8),
-      },
-      abilities: ['Attack'],
-    }));
+    return Array(enemyCount)
+      .fill(null)
+      .map((_, index) => ({
+        name: `Enemy ${index + 1}`,
+        type: 'humanoid',
+        challengeRating: Math.max(1, Math.floor((partyLevel * multiplier) / 2)),
+        hitPoints: this.diceService.roll(`${2 + index}d8+${partyLevel}`).total,
+        armorClass: 10 + Math.floor(partyLevel / 3),
+        stats: {
+          strength: 10 + Math.floor(Math.random() * 8),
+          dexterity: 10 + Math.floor(Math.random() * 8),
+          constitution: 10 + Math.floor(Math.random() * 8),
+          intelligence: 10 + Math.floor(Math.random() * 8),
+          wisdom: 10 + Math.floor(Math.random() * 8),
+          charisma: 10 + Math.floor(Math.random() * 8),
+        },
+        abilities: ['Attack'],
+      }));
   }
 
   private generateRewards(difficulty: string, partyLevel: number): Reward[] {

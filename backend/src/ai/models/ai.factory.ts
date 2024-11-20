@@ -8,7 +8,7 @@ import { OpenRouterModel } from './openrouter.model';
 export class AIModelFactory {
   private readonly logger = new Logger(AIModelFactory.name);
 
-  constructor(private readonly configService: ConfigService) { }
+  constructor(private readonly configService: ConfigService) {}
 
   createModel(): BaseAIModel {
     const modelType = this.configService.get<string>('AI_MODEL');

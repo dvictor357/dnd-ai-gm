@@ -10,10 +10,7 @@ import { CharacterService } from './services/character/character.service';
 import { EncounterService } from './services/encounter/encounter.service';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot(),
-    AIModule,
-  ],
+  imports: [ConfigModule.forRoot(), AIModule],
   controllers: [GameController],
   providers: [
     GameService,
@@ -25,4 +22,4 @@ import { EncounterService } from './services/encounter/encounter.service';
   ],
   exports: [GameService],
 })
-export class GameModule { }
+export class GameModule {}

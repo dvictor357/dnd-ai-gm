@@ -122,7 +122,7 @@ Remember: You're not just describing a scene - you're running a D&D game where m
 2. Handle game mechanics clearly and naturally
 3. Present interesting choices or challenges
 4. Connect to the character's unique traits and abilities
-5. Request appropriate rolls when needed using [dice] notation`
+5. Request appropriate rolls when needed using [dice] notation`,
     });
 
     // Add character-specific context if available
@@ -146,7 +146,7 @@ Remember: You're not just describing a scene - you're running a D&D game where m
   ): ConversationMessage[] {
     // Keep only the last 10 messages for context
     const recentHistory = history.slice(-10);
-    
+
     return recentHistory.map((msg) => ({
       role: msg.role,
       content: msg.content,

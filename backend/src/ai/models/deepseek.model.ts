@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BaseAIModel, AIModelResponse, ConversationMessage } from './base.model';
+import {
+  BaseAIModel,
+  AIModelResponse,
+  ConversationMessage,
+} from './base.model';
 import { Character } from '../utils/character.utils';
 import axios from 'axios';
 
@@ -53,7 +57,10 @@ export class DeepseekModel extends BaseAIModel {
         usage: response.data.usage,
       };
     } catch (error) {
-      console.error('Error calling Deepseek API:', error.response?.data || error.message);
+      console.error(
+        'Error calling Deepseek API:',
+        error.response?.data || error.message,
+      );
       throw new Error('Failed to get response from Deepseek API');
     }
   }

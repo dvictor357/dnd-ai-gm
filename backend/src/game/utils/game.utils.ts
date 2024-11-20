@@ -2,7 +2,7 @@ export class GameUtils {
   static wrapDiceRolls(text: string): string {
     // Pattern to match dice roll notation [XdY+Z] or [XdY-Z] or [dY]
     const pattern = /\[(\d*d\d+(?:[+-]\d+)?)\]/g;
-    
+
     // Replace each match with the same text wrapped in backticks
     return text.replace(pattern, '`[$1]`');
   }

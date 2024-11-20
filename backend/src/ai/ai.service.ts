@@ -10,7 +10,7 @@ export class AIService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly aiModelFactory: AIModelFactory,
-  ) { }
+  ) {}
 
   onModuleInit() {
     this.aiModel = this.aiModelFactory.createModel();

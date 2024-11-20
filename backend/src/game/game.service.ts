@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AIService } from '../ai/ai.service';
-import { Character, Player, ServerInfo } from './interfaces/game-state.interface';
+import { Character, ServerInfo } from './interfaces/game-state.interface';
 import { Server, Socket } from 'socket.io';
 import { TypingStatus } from './interfaces/message.types';
 import { DiceService } from './services/dice/dice.service';
@@ -76,13 +76,13 @@ export class GameService {
   private async broadcastTypingStatus(isTyping: boolean): Promise<void> {
     const typingStatus: TypingStatus = {
       playerId: 'gm',
-      isTyping
+      isTyping,
     };
 
     this.server?.emit('typing_status', typingStatus);
   }
 
-  private getSocket(playerId: string): Socket | null {
+  private getSocket(): Socket | null {
     // This would be implemented based on your socket management strategy
     // For example, you might store sockets in a Map or get them from Socket.io server
     return null;
@@ -90,7 +90,8 @@ export class GameService {
 
   getPlayerCount(): number {
     const state = this.gameStateService.getState();
-    return Object.values(state.players).filter(p => p.status === 'active').length;
+    return Object.values(state.players).filter((p) => p.status === 'active')
+      .length;
   }
 
   async handleDiceRoll(playerId: string, notation: string): Promise<DiceRoll> {
@@ -107,7 +108,10 @@ export class GameService {
     return rollResult.rolls[0];
   }
 
-  async generateEncounter(options: { type?: string; difficulty?: string }): Promise<any> {
+  async generateEncounter(options: {
+    type?: string;
+    difficulty?: string;
+  }): Promise<any> {
     const encounter = await this.encounterService.generateEncounter(options);
     this.gameStateService.incrementEncounters();
     return encounter;
@@ -127,35 +131,78 @@ export class GameService {
           // Parse the roll context
           const rollContext = message.content.toLowerCase();
           let abilityModifier = 0;
-          let proficiencyBonus = Math.ceil((character.level || 1) / 4) + 1;
+          const proficiencyBonus = Math.ceil((character.level || 1) / 4) + 1;
           let isSkillCheck = false;
 
           // Calculate ability modifier based on the check type
           if (rollContext.includes('strength') || rollContext.includes('str')) {
-            abilityModifier = Math.floor((character.stats?.strength || 10) - 10) / 2;
-          } else if (rollContext.includes('dexterity') || rollContext.includes('dex')) {
-            abilityModifier = Math.floor((character.stats?.dexterity || 10) - 10) / 2;
-          } else if (rollContext.includes('constitution') || rollContext.includes('con')) {
-            abilityModifier = Math.floor((character.stats?.constitution || 10) - 10) / 2;
-          } else if (rollContext.includes('intelligence') || rollContext.includes('int')) {
-            abilityModifier = Math.floor((character.stats?.intelligence || 10) - 10) / 2;
-          } else if (rollContext.includes('wisdom') || rollContext.includes('wis')) {
-            abilityModifier = Math.floor((character.stats?.wisdom || 10) - 10) / 2;
-          } else if (rollContext.includes('charisma') || rollContext.includes('cha')) {
-            abilityModifier = Math.floor((character.stats?.charisma || 10) - 10) / 2;
+            abilityModifier =
+              Math.floor((character.stats?.strength || 10) - 10) / 2;
+          } else if (
+            rollContext.includes('dexterity') ||
+            rollContext.includes('dex')
+          ) {
+            abilityModifier =
+              Math.floor((character.stats?.dexterity || 10) - 10) / 2;
+          } else if (
+            rollContext.includes('constitution') ||
+            rollContext.includes('con')
+          ) {
+            abilityModifier =
+              Math.floor((character.stats?.constitution || 10) - 10) / 2;
+          } else if (
+            rollContext.includes('intelligence') ||
+            rollContext.includes('int')
+          ) {
+            abilityModifier =
+              Math.floor((character.stats?.intelligence || 10) - 10) / 2;
+          } else if (
+            rollContext.includes('wisdom') ||
+            rollContext.includes('wis')
+          ) {
+            abilityModifier =
+              Math.floor((character.stats?.wisdom || 10) - 10) / 2;
+          } else if (
+            rollContext.includes('charisma') ||
+            rollContext.includes('cha')
+          ) {
+            abilityModifier =
+              Math.floor((character.stats?.charisma || 10) - 10) / 2;
           }
 
           // Check if this is a skill check
-          const skillChecks = ['acrobatics', 'animal handling', 'arcana', 'athletics', 'deception',
-            'history', 'insight', 'intimidation', 'investigation', 'medicine',
-            'nature', 'perception', 'performance', 'persuasion', 'religion',
-            'sleight of hand', 'stealth', 'survival'];
-          isSkillCheck = skillChecks.some(skill => rollContext.includes(skill));
+          const skillChecks = [
+            'acrobatics',
+            'animal handling',
+            'arcana',
+            'athletics',
+            'deception',
+            'history',
+            'insight',
+            'intimidation',
+            'investigation',
+            'medicine',
+            'nature',
+            'perception',
+            'performance',
+            'persuasion',
+            'religion',
+            'sleight of hand',
+            'stealth',
+            'survival',
+          ];
+          isSkillCheck = skillChecks.some((skill) =>
+            rollContext.includes(skill),
+          );
 
           // Add ability modifier and proficiency bonus if applicable
           let modifiedNotation = notation;
-          if (abilityModifier !== 0 || (isSkillCheck && proficiencyBonus !== 0)) {
-            const totalModifier = abilityModifier + (isSkillCheck ? proficiencyBonus : 0);
+          if (
+            abilityModifier !== 0 ||
+            (isSkillCheck && proficiencyBonus !== 0)
+          ) {
+            const totalModifier =
+              abilityModifier + (isSkillCheck ? proficiencyBonus : 0);
             modifiedNotation = `${notation}${totalModifier >= 0 ? '+' : ''}${totalModifier}`;
           }
 
@@ -182,18 +229,23 @@ export class GameService {
           }
 
           // Generate narrative response using unified prompt
-          const narrativeResponse = await this.generateResponse(playerId, character, message.content, {
-            isRollResponse: true,
-            rollDetails: {
-              action: message.content.split('[')[0],
-              result: result.results[0],
-              abilityModifier,
-              proficiencyBonus: isSkillCheck ? proficiencyBonus : 0,
-              total: result.total,
-              dc,
-              isSuccess: dc !== null ? result.total >= dc : null
-            }
-          });
+          const narrativeResponse = await this.generateResponse(
+            playerId,
+            character,
+            message.content,
+            {
+              isRollResponse: true,
+              rollDetails: {
+                action: message.content.split('[')[0],
+                result: result.results[0],
+                abilityModifier,
+                proficiencyBonus: isSkillCheck ? proficiencyBonus : 0,
+                total: result.total,
+                dc,
+                isSuccess: dc !== null ? result.total >= dc : null,
+              },
+            },
+          );
 
           // Combine roll result and narrative
           return `${rollResult}\n\n${narrativeResponse}`;
@@ -232,10 +284,11 @@ export class GameService {
     },
   ): Promise<string> {
     // Get recent conversation history
-    const recentMessages = this.gameStateService.getState().conversations[playerId] || [];
-    const lastMessages = recentMessages.slice(-5).map(msg => ({
+    const recentMessages =
+      this.gameStateService.getState().conversations[playerId] || [];
+    const lastMessages = recentMessages.slice(-5).map((msg) => ({
       role: msg.type === 'player' ? 'user' : 'assistant',
-      content: msg.content
+      content: msg.content,
     }));
 
     const prompt = `
@@ -263,9 +316,11 @@ export class GameService {
       Proficiency Bonus: +${Math.ceil((character.level || 1) / 4) + 1}
 
       RECENT CONVERSATION:
-      ${lastMessages.map(msg => `${msg.role === 'user' ? 'Player' : 'DM'}: ${msg.content}`).join('\n')}
+      ${lastMessages.map((msg) => `${msg.role === 'user' ? 'Player' : 'DM'}: ${msg.content}`).join('\n')}
 
-      ${rollInfo?.isRollResponse ? `
+      ${
+        rollInfo?.isRollResponse
+          ? `
       ROLL CONTEXT:
       Action: ${rollInfo.rollDetails?.action}
       Roll Result: ${rollInfo.rollDetails?.result}
@@ -273,25 +328,31 @@ export class GameService {
       Total: ${rollInfo.rollDetails?.total}
       ${rollInfo.rollDetails?.dc !== null ? `DC: ${rollInfo.rollDetails?.dc}` : ''}
       ${rollInfo.rollDetails?.isSuccess !== null ? `Outcome: ${rollInfo.rollDetails?.isSuccess ? 'Success' : 'Failure'}` : ''}
-      ` : `
+      `
+          : `
       PLAYER ACTION:
       ${action}
-      `}
+      `
+      }
 
       RESPONSE GUIDELINES:
-      ${rollInfo?.isRollResponse ? `
+      ${
+        rollInfo?.isRollResponse
+          ? `
       1. Acknowledge the roll result and total
       2. Describe the outcome in vivid narrative detail
       3. Explain how close they were to success/failure
       4. Detail the immediate consequences
       5. Set up the next action or choice
-      ` : `
+      `
+          : `
       1. Identify the type of action (combat, skill check, spell, social, etc.)
       2. Consider relevant attributes and modifiers
       3. Request rolls using [dice] notation when needed
       4. Specify DCs for checks
       5. Apply proficiency bonus if relevant
-      `}
+      `
+      }
 
       STYLE GUIDE:
       - Use evocative, sensory-rich language
@@ -313,7 +374,7 @@ export class GameService {
     await this.gameStateService.addMessage(playerId, {
       content: response,
       type: 'gm',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return response;
@@ -352,7 +413,7 @@ export class GameService {
 
   async getOrCreateGameRoom(playerId: string): Promise<string> {
     // Check if player is already in a room
-    let room = this.gameRooms.get(playerId);
+    const room = this.gameRooms.get(playerId);
     if (room) {
       return room;
     }
@@ -363,7 +424,8 @@ export class GameService {
 
     for (const existingRoom of uniqueRooms) {
       const sockets = await this.server.in(existingRoom).fetchSockets();
-      if (sockets.length < 4) { // Limit 4 players per room
+      if (sockets.length < 4) {
+        // Limit 4 players per room
         this.gameRooms.set(playerId, existingRoom);
         return existingRoom;
       }

@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { GameStateService } from './game-state.service';
-import { Player, Character, GameSettings } from '../../interfaces/game-state.interface';
+import { ConfigService } from '@nestjs/config';
+import { Character, GameSettings } from '../../interfaces/game-state.interface';
 import { ChatMessage } from '../../interfaces/message.types';
 
 describe('GameStateService', () => {
   let service: GameStateService;
-  let configService: ConfigService;
 
   const mockConfigService = {
     get: jest.fn((key: string, defaultValue: string) => defaultValue),
@@ -24,7 +23,6 @@ describe('GameStateService', () => {
     }).compile();
 
     service = module.get<GameStateService>(GameStateService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -116,8 +114,8 @@ describe('GameStateService', () => {
       type: 'user',
       playerId,
       metadata: {
-        testKey: 'testValue'
-      }
+        testKey: 'testValue',
+      },
     };
 
     beforeEach(async () => {

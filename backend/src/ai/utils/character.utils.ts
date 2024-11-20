@@ -55,17 +55,18 @@ export class CharacterUtils {
    */
   static createCharacterContext(character: Character): string {
     const { name, race, class: charClass, background, stats = {} } = character;
-    
+
     let context = `You are weaving an epic tale centered around ${name}, a ${race} ${charClass} whose ${background} background colors their view of the world. This character's journey should be rich with opportunities that highlight their unique nature and skills.
 
 Character Essence:
 - A ${race} ${charClass}: Let their heritage and training influence how they experience the world
 - ${background} Background: Their past experiences shape how others react to them
 - Unique Perspective: Blend their race, class, and background into a distinctive narrative voice\n\n`;
-    
+
     // Add stats with modifiers
     if (Object.keys(stats).length > 0) {
-      context += 'Character Stats (Consider these for both mechanics and narrative):\n';
+      context +=
+        'Character Stats (Consider these for both mechanics and narrative):\n';
       context += this.formatStats(stats);
       context += '\n\n';
     }

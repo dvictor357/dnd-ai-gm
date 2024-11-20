@@ -6,7 +6,7 @@ import {
   GameSession,
   GameSettings,
   Character,
-  ServerInfo
+  ServerInfo,
 } from '../../interfaces/game-state.interface';
 import { ChatMessage } from '../../interfaces/message.types';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +44,10 @@ export class GameStateService {
   }
 
   // Player Management
-  async addPlayer(playerId: string, initialData?: Partial<Player>): Promise<Player> {
+  async addPlayer(
+    playerId: string,
+    initialData?: Partial<Player>,
+  ): Promise<Player> {
     const player: Player = {
       id: playerId,
       joined_at: new Date().toISOString(),
@@ -66,13 +69,18 @@ export class GameStateService {
 
     if (this.state.currentSession?.active_players.includes(playerId)) {
       this.state.currentSession.active_players =
-        this.state.currentSession.active_players.filter(id => id !== playerId);
+        this.state.currentSession.active_players.filter(
+          (id) => id !== playerId,
+        );
     }
 
     this.updateLastModified();
   }
 
-  async updatePlayerStatus(playerId: string, status: Player['status']): Promise<void> {
+  async updatePlayerStatus(
+    playerId: string,
+    status: Player['status'],
+  ): Promise<void> {
     if (this.state.players.has(playerId)) {
       const player = this.state.players.get(playerId);
       if (player) {
@@ -96,14 +104,17 @@ export class GameStateService {
   }
 
   // Session Management
-  async startNewSession(scene: string, environment: string): Promise<GameSession> {
+  async startNewSession(
+    scene: string,
+    environment: string,
+  ): Promise<GameSession> {
     const session: GameSession = {
       id: uuidv4(),
       started_at: new Date().toISOString(),
       scene,
       environment,
       active_players: Array.from(this.state.players.keys()).filter(
-        id => this.state.players.get(id)?.status === 'active'
+        (id) => this.state.players.get(id)?.status === 'active',
       ),
     };
 
@@ -128,7 +139,10 @@ export class GameStateService {
     }
   }
 
-  async setPlayerCharacter(playerId: string, character: Character): Promise<void> {
+  async setPlayerCharacter(
+    playerId: string,
+    character: Character,
+  ): Promise<void> {
     const player = this.state.players.get(playerId);
     if (!player) {
       throw new Error('Player not found');
@@ -210,7 +224,9 @@ export class GameStateService {
           heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
           heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
           external: Math.round(memoryUsage.external / 1024 / 1024), // MB
-          usagePercent: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+          usagePercent: Math.round(
+            (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+          ),
         },
         performance: {
           responseTime: this.getAverageResponseTime(),
